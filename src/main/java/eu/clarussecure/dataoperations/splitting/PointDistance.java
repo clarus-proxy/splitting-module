@@ -1,5 +1,7 @@
 package eu.clarussecure.dataoperations.kriging;
 
+import eu.clarussecure.dataoperations.splitting.DBRecord;
+
 import java.math.BigDecimal;
 
 public class PointDistance {

@@ -4,6 +4,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
 import eu.clarussecure.dataoperations.Criteria;
+import eu.clarussecure.dataoperations.splitting.Constants;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,8 +20,8 @@ import java.util.stream.IntStream;
 
 public class Cloud {
 
-    String[][] data;
-    String[] attributes;
+    private String[][] data;
+    private String[] attributes;
 
     public Cloud(String[] attrs, String[][] data) {
         this.data = data;

@@ -1,8 +1,10 @@
 package eu.clarussecure.dataoperations.splitting;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.LinkedList;
-import java.util.Random;
 
 public class DatasetParser {
 
@@ -36,13 +38,5 @@ public class DatasetParser {
             content[i] = lines.get(i).split(this.fieldSeparator);
         }
         return content;
-    }
-
-    public String[][] getSingleRecord() throws IOException {
-        String[][] dataset = parseDataset();
-        Random r = new Random();
-        String[][] record = new String[1][dataset[0].length];
-        record[0] = dataset[r.nextInt(dataset.length)];
-        return record;
     }
 }
