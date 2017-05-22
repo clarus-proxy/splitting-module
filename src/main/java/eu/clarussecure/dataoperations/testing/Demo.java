@@ -1,4 +1,4 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.testing;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -6,7 +6,6 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.WKBWriter;
 import eu.clarussecure.dataoperations.*;
-import eu.clarussecure.dataoperations.kriging.Cloud;
 import eu.clarussecure.dataoperations.splitting.*;
 import org.w3c.dom.Document;
 
@@ -124,7 +123,7 @@ public class Demo {
 
         // Retrieve record by list of ids
 
-        criteria = new Criteria("meuseDB/meuse/gid", eu.clarussecure.dataoperations.splitting.Constants.in, "1,3,4,8");
+        criteria = new Criteria("meuseDB/meuse/gid", Constants.in, "1,3,4,8");
         criterias = new Criteria[1];
         criterias[0] = criteria;
 
@@ -138,7 +137,7 @@ public class Demo {
 
         // Delete records
 
-        criteria = new Criteria("meuseDB/meuse/gid", eu.clarussecure.dataoperations.splitting.Constants.in, "1,2,3,4,5");
+        criteria = new Criteria("meuseDB/meuse/gid", Constants.in, "1,2,3,4,5");
         criterias = new Criteria[1];
         criterias[0] = criteria;
 
@@ -176,7 +175,7 @@ public class Demo {
         System.out.println("---------------------------------------");
 
 
-        // KRIGINF TEST
+        // KRIGING TEST
         System.out.println("KRIGING TEST");
 
         // cleanup clouds
@@ -210,7 +209,7 @@ public class Demo {
         System.out.println("--------------------------");
 
 
-        //kriging of zinc at point (1,0)
+        //testing of zinc at point (1,0)
         criteria = new Criteria("meuseDB/meuse/zinc", eu.clarussecure.dataoperations.splitting.Constants.kriging, "meuseDB/meuse/geom:1,0");
         criterias = new Criteria[1];
         criterias[0] = criteria;

@@ -1,4 +1,4 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.splitting;
 
 import eu.clarussecure.dataoperations.splitting.DBRecord;
 

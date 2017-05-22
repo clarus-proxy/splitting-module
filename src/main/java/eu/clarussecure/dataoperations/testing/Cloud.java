@@ -1,4 +1,4 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.testing;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKBReader;

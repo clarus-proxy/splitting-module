@@ -1,4 +1,4 @@
-package eu.clarussecure.dataoperations.splitting;
+package eu.clarussecure.dataoperations.testing;
 
 import java.io.BufferedReader;
 import java.io.File;

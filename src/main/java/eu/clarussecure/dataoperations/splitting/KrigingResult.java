@@ -1,4 +1,4 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.splitting;
 
 /**
  * Created by sergi on 25/04/2017.

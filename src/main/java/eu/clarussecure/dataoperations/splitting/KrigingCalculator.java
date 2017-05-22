@@ -1,4 +1,4 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.splitting;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -116,7 +116,7 @@ public class KrigingCalculator {
 				break;
 			}
 		}
-		avg = avg.divide(new BigDecimal(points.size()),Constants.precision,RoundingMode.HALF_UP);
+		avg = avg.divide(new BigDecimal(points.size()), Constants.precision,RoundingMode.HALF_UP);
 		return avg;
 	}
 	
@@ -169,7 +169,7 @@ public class KrigingCalculator {
 	private static void calculateSphericalGamma(List<PointDistance> points) {
 		for(int i=0;i<points.size();i++)
 		{
-			BigDecimal test1 = points.get(i).getDistance().multiply(new BigDecimal(3)).divide(new BigDecimal(2*Constants.c));
+			BigDecimal test1 = points.get(i).getDistance().multiply(new BigDecimal(3)).divide(new BigDecimal(2* Constants.c));
 			BigDecimal test2 = (points.get(i).getDistance().pow(3)).divide(new BigDecimal(Constants.c).pow(3).multiply(new BigDecimal(2)));
 			BigDecimal result = new BigDecimal(0);
 			if(test1.compareTo(result) != 0 && test2.compareTo(result) != 0) result = new BigDecimal(Constants.a).add( (test1.subtract(test2)).multiply(new BigDecimal(Constants.b)) );

@@ -1,7 +1,6 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.splitting;
 
 import eu.clarussecure.dataoperations.DataOperationCommand;
-import eu.clarussecure.dataoperations.splitting.SplitPoint;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;

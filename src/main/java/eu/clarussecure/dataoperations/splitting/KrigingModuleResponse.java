@@ -1,14 +1,11 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.splitting;
 
 import eu.clarussecure.dataoperations.DataOperationResponse;
 
 import java.util.Random;
 
-/**
- * Created by sergi on 15/05/2017.
- */
 public class KrigingModuleResponse extends DataOperationResponse{
-    KrigingResult result;
+    private KrigingResult result;
 
     public KrigingModuleResponse(String[] attributeNames, String[][] contents) {
 

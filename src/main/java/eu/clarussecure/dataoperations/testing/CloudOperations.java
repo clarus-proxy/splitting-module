@@ -1,4 +1,4 @@
-package eu.clarussecure.dataoperations.kriging;
+package eu.clarussecure.dataoperations.testing;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

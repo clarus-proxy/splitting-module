@@ -11,8 +11,6 @@ import eu.clarussecure.dataoperations.Criteria;
 import eu.clarussecure.dataoperations.DataOperation;
 import eu.clarussecure.dataoperations.DataOperationCommand;
 import eu.clarussecure.dataoperations.DataOperationResult;
-import eu.clarussecure.dataoperations.kriging.KrigingModuleCommand;
-import eu.clarussecure.dataoperations.kriging.KrigingModuleResponse;
 import org.w3c.dom.Document;
 
 import java.util.*;
@@ -383,7 +381,7 @@ public class SplittingModule implements DataOperation {
     }
 
 
-    //TODO: Temp method for kriging ------------------------------------------------------------------------------
+    //TODO: Temp method for testing ------------------------------------------------------------------------------
     private List<DataOperationCommand> krigingFirst(String attributeName, String geoAttributeName, String point) {
         //todo Testing load data base
         List<Map<String, String>> loadedDataBase = dataBase;
@@ -530,7 +528,7 @@ public class SplittingModule implements DataOperation {
 
         return results;
     }
-    //TODO: End temp method for kriging --------------------------------------------------------------------------
+    //TODO: End temp method for testing --------------------------------------------------------------------------
 
     private List<String[][]> filterContentsByPrimaryKey(String keyAttribute, List<DataOperationCommand> promise, List<String[][]> contents) {
 

@@ -31,7 +31,7 @@ public class Constants {
 	final static public String attribute = "attribute";
 	final static public String non_confidential = "non_confidential";
 	final static public String area = "area";
-	final static public String kriging = "kriging";
+	final static public String kriging = "testing";
 	final static public String krigingCalculateX = "calculateX";
 	final static public String krigingCalculateY = "calculateY";
 	final static public String in = "in";
@@ -42,5 +42,12 @@ public class Constants {
 	final static public String MIN_Y = "-1000000.0";
 	final static public String MAX_X = "1000000.0";
 	final static public String MAX_Y = "1000000.0";
+
+
+	final static public int precision = 9;
+	final static public int a = 10;
+	final static public int b = 8;
+	final static public int c = 2;
+
 	
 }

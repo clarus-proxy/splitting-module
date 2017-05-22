@@ -1,6 +1,4 @@
-package eu.clarussecure.dataoperations.kriging;
-
-import eu.clarussecure.dataoperations.splitting.DBRecord;
+package eu.clarussecure.dataoperations.splitting;
 
 import java.util.List;
 

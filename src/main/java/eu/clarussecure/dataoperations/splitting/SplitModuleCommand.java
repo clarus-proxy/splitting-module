@@ -3,7 +3,6 @@ package eu.clarussecure.dataoperations.splitting;
 import eu.clarussecure.dataoperations.Criteria;
 import eu.clarussecure.dataoperations.DataOperationCommand;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -24,8 +23,6 @@ public class SplitModuleCommand extends DataOperationCommand {
         super.mapping = mapping;
         super.protectedContents = protectedContents;
         super.criteria = null;
-
-        //Añadir response de DataOperationResponse
         this.splitPoints = splitPoints;
     }
 
