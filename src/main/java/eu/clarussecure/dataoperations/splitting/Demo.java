@@ -107,7 +107,7 @@ public class Demo {
         // Retrieve record by COPPER >= 100 AND LEAD == 405.0
 
         criteria = new Criteria("meuseDB/meuse/copper", ">=", "100.0");
-        Criteria criteria2 = new Criteria("meuseDB/meuse/lead", "=", "405");
+        Criteria criteria2 = new Criteria("meuseDB/meuse/lead", ">", "405");
         criterias = new Criteria[2];
         criterias[0] = criteria;
         criterias[1] = criteria2;
@@ -193,13 +193,12 @@ public class Demo {
         document = Functions.readDocument(xmlProperties);
         splittingModule = new SplittingModule(document);
 
-
         // post new dataset
         commands = splittingModule.post(attributes, dataOri);
 
         // Create DB in clouds
-        for (int i = 0; i < commands.size(); i++) {
-            clouds.add(new Cloud(commands.get(i).getProtectedAttributeNames(), commands.get(i).getProtectedContents()));
+        for (DataOperationCommand c: commands) {
+            clouds.add(new Cloud(c.getProtectedAttributeNames(), c.getProtectedContents()));
         }
 
         // Show contents in cloud
@@ -230,25 +229,9 @@ public class Demo {
                 break;
             }
         }
-
-        //// Orchestrated Kriging
-        ////commands = splittingModule.get(attributes, criterias);
-        //commands = ((SplittingModule) splittingModule).krigingFirst("meuseDB/meuse/zinc", "meuseDB/meuse/geom", "1,0");
-        //contents = queryClouds(clouds, commands);
-        //results = ((SplittingModule) splittingModule).kriging(commands, contents);
-        //while (true) {
-        //    if (results.stream().anyMatch(p -> p instanceof DataOperationCommand)) {
-        //        commands = toCommands(results);
-        //        contents = queryClouds(clouds, commands);
-        //        results = ((SplittingModule) splittingModule).kriging(commands, contents);
-        //    } else if (results.stream().anyMatch(p -> p instanceof DataOperationResponse)) {
-        //        printResponse(results);
-        //        break;
-        //    }
-        //}
 	}
 
-	public static List<String[][]> queryClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
+	private static List<String[][]> queryClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
         List<String[][]> contents = new ArrayList<>();
         for (int i = 0; i < commands.size(); i++) {
             if (commands.get(i) == null) {
@@ -264,19 +247,19 @@ public class Demo {
         return contents;
     }
 
-    public static void deleteInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
+    private static void deleteInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
 	    for (int i = 0; i < commands.size(); i++) {
             clouds.get(i).delete(commands.get(i).getCriteria());
         }
     }
 
-    public static void updateInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
+    private static void updateInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
         for (int i = 0; i < commands.size(); i++) {
             clouds.get(i).update(commands.get(i).getCriteria(), commands.get(i).getProtectedContents());
         }
     }
 
-	public static void printResponse(List<DataOperationResult> results) {
+	private static void printResponse(List<DataOperationResult> results) {
 	    for (DataOperationResult r: results) {
 	        DataOperationResponse re = (DataOperationResponse) r;
 	        System.out.println(String.join(", ", re.getAttributeNames()));
@@ -286,28 +269,29 @@ public class Demo {
         }
     }
 
-    public static List<DataOperationCommand> toCommands(List<DataOperationResult> results) {
+    private static List<DataOperationCommand> toCommands(List<DataOperationResult> results) {
 	    List<DataOperationCommand> commands = new ArrayList<>();
-	    for (int i = 0; i < results.size(); i++) {
-	        if (results.get(i) == null) {
+	    for (DataOperationResult r: results) {
+	        if (r == null) {
 	            commands.add(null);
             } else {
-	            commands.add((DataOperationCommand) results.get(i));
+	            commands.add((DataOperationCommand) r);
             }
         }
         return commands;
     }
 
-	public static byte[] loadXmlFile(String filePropertiesName){
+	private static byte[] loadXmlFile(String filePropertiesName){
 		FileReader2 file;
 		String linea;
-		String xml;
-		
+
 		file = new FileReader2(filePropertiesName);
-		xml = "";
+		StringBuilder sb = new StringBuilder();
 		while((linea=file.readLine())!=null){
-			xml += linea;
+            sb.append(linea);
 		}
+
+		String xml = sb.toString();
 		file.closeFile();
 		Functions.readProperties(xml);
 		System.out.println("Xml loaded");
@@ -319,7 +303,7 @@ public class Demo {
         PrecisionModel pmodel = new PrecisionModel();
         GeometryFactory builder = new GeometryFactory(pmodel, 4326);
         WKBWriter writer = new WKBWriter(2, 2, true);
-        Geometry geom = null;
+        Geometry geom;
         Coordinate newCoord;
 
         data = new String[3][3];

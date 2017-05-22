@@ -1,13 +1,5 @@
 package eu.clarussecure.dataoperations.kriging;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKBWriter;
-import eu.clarussecure.dataoperations.Criteria;
 import eu.clarussecure.dataoperations.DataOperationCommand;
 import eu.clarussecure.dataoperations.splitting.SplitPoint;
 
@@ -16,20 +8,14 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.Random;
-import java.util.stream.IntStream;
 
-/**
- * Created by sergi on 05/05/2017.
- */
 public class KrigingModuleCommand extends DataOperationCommand {
 
     private Map<String, SplitPoint> splitPoints = null;
-    private Criteria[] originalCriteria;
     private String measure;
     private String geomAttribute;
     private String point;
     private int step;
-    private String[] calculateX;
     private String[] calculatedOnCloud;
     private String[] measureContents;
     private String[] xCoordinate;
@@ -41,15 +27,12 @@ public class KrigingModuleCommand extends DataOperationCommand {
         super.id = new Random().nextInt();
         super.attributeNames = attributeNames;
         super.protectedAttributeNames = protectedAttributeNames;
-        super.extraProtectedAttributeNames = extraProtectedAttributeNames;
         this.splitPoints = splitPoints;
 
         // Declare custom call to the cloud
         super.extraBinaryContent = null;
-
         super.mapping = mapping;
         this.step = 1;
-
         this.measure = measure;
         this.geomAttribute = geomAttribute;
         this.point = point;
@@ -72,20 +55,12 @@ public class KrigingModuleCommand extends DataOperationCommand {
         return splitPoints;
     }
 
-    public String[] getCalculatedOnCloud() {
-        return calculatedOnCloud;
-    }
-
     public String getMeasure() {
         return measure;
     }
 
     public String getGeomAttribute() {
         return geomAttribute;
-    }
-
-    public String getPoint() {
-        return point;
     }
 
     public void setCustomCall(String customCall) {
@@ -100,10 +75,6 @@ public class KrigingModuleCommand extends DataOperationCommand {
         super.extraBinaryContent[0] = is;
     }
 
-    public void removeCustomCall() {
-        super.extraBinaryContent = null;
-    }
-
     public void addAttributeName(String attributeName) {
         String[] newAttributes = new String[attributeNames.length + 1];
         System.arraycopy(attributeNames, 0, newAttributes, 0, attributeNames.length);
@@ -116,10 +87,6 @@ public class KrigingModuleCommand extends DataOperationCommand {
         System.arraycopy(protectedAttributeNames, 0, newAttributes, 0, protectedAttributeNames.length);
         newAttributes[newAttributes.length -1] = protectedAttributeName;
         protectedAttributeNames = newAttributes;
-    }
-
-    public void setCalculateX(String[] calculateX) {
-        this.calculateX = calculateX;
     }
 
     public void setCalculatedOnCloud(String[] calculatedOnCloud) {
@@ -137,50 +104,4 @@ public class KrigingModuleCommand extends DataOperationCommand {
     public void setyCoordinate(String[] yCoordinate) {
         this.yCoordinate = yCoordinate;
     }
-
-    public String[] getCalculateX() {
-        return calculateX;
-    }
-
-    public String[] getMeasureContents() {
-        return measureContents;
-    }
-
-    public String[] getxCoordinate() {
-        return xCoordinate;
-    }
-
-    public String[] getyCoordinate() {
-        return yCoordinate;
-    }
-
-
-    private String[] joinGeomColumn(String[] x, String[] y) {
-        return IntStream.range(0, x.length).mapToObj(i -> joinCoords(x[i], y[i])).toArray(size -> new String[size]);
-    }
-
-    //Joins two String coordinates
-    private String joinCoords(String wkbX, String wkbY) {
-        Geometry geom = null;
-        WKBReader reader = new WKBReader();
-        WKBWriter writer = new WKBWriter(2, 2, true);
-        Coordinate coordX, coordY, newCoord;
-        PrecisionModel pmodel = new PrecisionModel();
-        GeometryFactory builder = new GeometryFactory(pmodel, 4326);
-
-
-        try {
-            geom = reader.read(WKBReader.hexToBytes(wkbX));
-            coordX = geom.getCoordinate();
-            geom = reader.read(WKBReader.hexToBytes(wkbY));
-            coordY = geom.getCoordinate();
-            newCoord = new Coordinate(coordX.x, coordY.y);
-            geom = builder.createPoint(newCoord);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-
-        return WKBWriter.toHex(writer.write(geom));
-    }
-
 }
