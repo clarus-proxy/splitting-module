@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema>
+    <file
+            header="yes"
+            attribute_separator=","
+            record_separator=";">
+        <attribute
+                name="meuseDB/meuse/zinc"
+                attribute_type="confidential"
+                data_type="numeric_continuous">
+        </attribute>
+        <attribute
+                name="meuseDB/meuse/geom"
+                attribute_type="identifier"
+                data_type="geometric_object">
+        </attribute>
+    </file>
+    <protection
+            module="splitting">
+        <attribute_types>
+            <attribute_type
+                    type="identifier"
+                    protection="splitting"
+                    clouds="2">
+            </attribute_type>
+            <attribute_type
+                    type="confidential"
+                    protection="encryption"
+                    id_key="123">
+            </attribute_type>
+            <attribute_type
+                    type="non_confidential"
+                    protection="null">
+            </attribute_type>
+        </attribute_types>
+    </protection>
+</schema>
+
