@@ -241,7 +241,7 @@ public class Demo {
                 Criteria[] criteria = commands.get(i).getCriteria();
                 InputStream[] extraBinaryContent = commands.get(i).getExtraBinaryContent();
                 String[] extraProtectedAttributeNames = commands.get(i).getExtraProtectedAttributeNames();
-                contents.add(clouds.get(i).get(protectedAttributeNames, criteria, extraBinaryContent, extraProtectedAttributeNames));
+                contents.add(clouds.get(i).get(protectedAttributeNames, criteria, extraBinaryContent));
             }
         }
         return contents;

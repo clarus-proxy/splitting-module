@@ -6,10 +6,7 @@ import com.vividsolutions.jts.io.WKBWriter;
 import eu.clarussecure.dataoperations.Criteria;
 import eu.clarussecure.dataoperations.splitting.Constants;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.*;
@@ -35,7 +32,7 @@ public class Cloud {
         }
     }
 
-    public String[][] get(String[] protectedAttributeNames, Criteria[] criteria, InputStream[] extraContent, String[] extraProtectedAttributeNames) {
+    public String[][] get(String[] protectedAttributeNames, Criteria[] criteria, InputStream[] extraContent) {
         String[][] loadedData = data.clone();
         if (criteria != null && criteria.length > 0) {
             for (Criteria c : criteria) {
@@ -44,7 +41,7 @@ public class Cloud {
                     final int P = pos;
                     loadedData = Arrays.stream(loadedData)
                             .filter(getPredicate(c, P))
-                            .toArray(size -> new String[size][]);
+                            .toArray(String[][]::new);
                 }
             }
         }
@@ -54,7 +51,20 @@ public class Cloud {
         }
         Map<String, String[]> table = datasetByColumns(attributes, loadedData);
 
-        if (extraContent != null && extraContent.length > 0) {
+        for (String a: protectedAttributeNames) {
+            if (a.contains(Constants.krigingCalculateX)) {
+                String geomAttr = a.split("(\\(|\\))")[1];
+                String[] calculateX = calculateX(geomAttr);
+                table.put(a, calculateX);
+            } else if (a.contains(Constants.krigingCalculateY)) {
+                String[] parameters = a.split("(\\(|\\))")[1].split(",\\s*\\{");
+                String geomAttr = parameters[0];
+                String[] calculateX = parameters[1].substring(0, parameters[1].length() - 1).split(",");
+                table.put(a, calculateY(geomAttr, calculateX));
+            }
+        }
+
+        /*if (extraContent != null && extraContent.length > 0) {
             BufferedReader in = new BufferedReader(new InputStreamReader(extraContent[0]));
             String instruction = null;
             try {
@@ -88,7 +98,7 @@ public class Cloud {
                 default:
                     break;
             }
-        }
+        }*/
 
         Map<String, String[]> lTable = new HashMap<>();
         for (String attr: protectedAttributeNames) {
@@ -402,9 +412,4 @@ public class Cloud {
         boolean inY = y >= boundary[1] && y <= boundary[3];
         return inX && inY;
     }
-
-//    private static BigDecimal calculateDistance(DBRegister point1, DBRegister point2)
-//    {
-//        return sqrt(point2.getX().subtract(point1.getX()).pow(2).add(point2.getY().subtract(point1.getY()).pow(2)));
-//    }
 }

@@ -426,7 +426,6 @@ public class SplittingModule implements DataOperation {
 
         commands.set(y, kmc);
 
-
         // Bring in the MEASURE
         // What cloud holds the measure
         int measureCloud = 0;
@@ -500,18 +499,13 @@ public class SplittingModule implements DataOperation {
                         kmc.setMeasureContents(content[content.length - 1]);
                     }
                 }
-                kmc.setProtectedAttributeNames(new String[] {Constants.krigingCalculateX});
-                kmc.setCustomCall(Constants.krigingCalculateX + "\n"
-                        + loadedDataBase.get(x).get(kmc.getGeomAttribute()));
+                kmc.setProtectedAttributeNames(new String[] {Constants.krigingCalculateX + "(" + loadedDataBase.get(x).get(kmc.getGeomAttribute()) + ")"});
                 results.set(x, kmc);
                 break;
             case 2:
                 kmc.nextStep();
                 String[] calculateX = transpose(contents.get(x))[0];
-                kmc.setProtectedAttributeNames(new String[] {Constants.krigingCalculateY});
-                kmc.setCustomCall(Constants.krigingCalculateY + "\n"
-                        + loadedDataBase.get(y).get(kmc.getGeomAttribute()) + "\n"
-                        + String.join(":", calculateX));
+                kmc.setProtectedAttributeNames(new String[] {Constants.krigingCalculateY + "(" + loadedDataBase.get(y).get(kmc.getGeomAttribute()) + ", {" + String.join(",", calculateX) + "})"});
                 results.set(y, kmc);
                 break;
             case 3:
