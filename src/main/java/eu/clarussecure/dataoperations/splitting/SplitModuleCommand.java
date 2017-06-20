@@ -14,7 +14,8 @@ public class SplitModuleCommand extends DataOperationCommand {
     private Map<String, SplitPoint> splitPoints = null;
     private Criteria[] originalCriteria;
 
-    public SplitModuleCommand(String[] attributeNames, String[] protectedAttributeNames, Map<String, String> mapping, Map<String, SplitPoint> splitPoints, String[][] contents, String[][] protectedContents) {
+    public SplitModuleCommand(String[] attributeNames, String[] protectedAttributeNames, Map<String, String> mapping,
+            Map<String, SplitPoint> splitPoints, String[][] contents, String[][] protectedContents) {
         super.id = new Random().nextInt();
         super.attributeNames = attributeNames;
         super.protectedAttributeNames = protectedAttributeNames;
@@ -30,7 +31,7 @@ public class SplitModuleCommand extends DataOperationCommand {
         return splitPoints;
     }
 
-    public void setCriteria(Criteria criteria[]){
+    public void setCriteria(Criteria criteria[]) {
         super.criteria = criteria;
     }
 
@@ -41,6 +42,5 @@ public class SplitModuleCommand extends DataOperationCommand {
     public Criteria[] getOriginalCriteria() {
         return this.originalCriteria;
     }
-
 
 }

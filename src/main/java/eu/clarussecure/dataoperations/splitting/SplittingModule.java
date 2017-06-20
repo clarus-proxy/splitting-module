@@ -23,7 +23,6 @@ public class SplittingModule implements DataOperation {
     private List<Map<String, String>> dataBase;
     private Map<String, SplitPoint> splitPoints;
 
-
     public SplittingModule(Document document) {
         Functions.readProperties(document);
     }
@@ -58,7 +57,7 @@ public class SplittingModule implements DataOperation {
         }
 
         // Split call attributes among clouds
-        for (String a: attributeNames) {
+        for (String a : attributeNames) {
             // TODO: special treatment of geometric attributes
             if (a.equals("meuseDB/meuse/geom")) { // IF ATTRIBUTE IS GEOM
                 int x = points.get(a).getX();
@@ -83,7 +82,7 @@ public class SplittingModule implements DataOperation {
             commands = genericOutboundGET(attributeNames, protAttr, loadedDataBase, points, criterias, splitCriteria);
         } else {
             // Base case
-            commands = genericOutboundGET(attributeNames, protAttr, loadedDataBase, points, null,  null);
+            commands = genericOutboundGET(attributeNames, protAttr, loadedDataBase, points, null, null);
         }
 
         return commands;
@@ -103,7 +102,7 @@ public class SplittingModule implements DataOperation {
         // Look for the primary key
         String[] attributeNames = promise.get(0).getAttributeNames();
         String keyAttribute = "";
-        for (String a: attributeNames) {
+        for (String a : attributeNames) {
             if (a.equals("meuseDB/meuse/gid")) { // TODO: if a is primary key
                 keyAttribute = a;
             }
@@ -119,7 +118,7 @@ public class SplittingModule implements DataOperation {
         }
 
         // Reconstruct original table
-        for (String a: attributeNames) {
+        for (String a : attributeNames) {
             //TODO: for geometric attributes
             if (a.equals("meuseDB/meuse/geom")) { //IF ATTRIBUTE IS GEOM
                 int x = ((SplitModuleCommand) promise.get(0)).getSplitPoints().get(a).getX();
@@ -143,7 +142,8 @@ public class SplittingModule implements DataOperation {
         // Transform table of named columns to table of rows
         String[][] datasetByRows = datasetByRows(attributeNames, table);
 
-        datasetByRows = filter(attributeNames, datasetByRows, ((SplitModuleCommand) promise.get(0)).getOriginalCriteria());
+        datasetByRows = filter(attributeNames, datasetByRows,
+                ((SplitModuleCommand) promise.get(0)).getOriginalCriteria());
         result.add(new SplitModuleResponse(attributeNames, datasetByRows));
 
         return result;
@@ -188,33 +188,35 @@ public class SplittingModule implements DataOperation {
             Map<String, SplitPoint> points = new HashMap<>();
             for (String a : attributeNames) {
                 switch (a) {
-                    // PRIMARY KEYS ARE REPLICATED IN ALL CLOUDS
-                    case "meuseDB/meuse/gid": // TODO: IF ATTRIBUTE IS PRIMARY KEY
-                        for (int i = 0; i < clouds; i++) {
-                            mapping.get(i).put(a, buildProtectedAttributeName(a, i));
-                            splitDataset.get(i).put(buildProtectedAttributeName(a, i), dataset.get(a));
-                        }
-                        break;
-                    // ALL GEOMETRIC OBJECTS ARE SPLIT
-                    case "meuseDB/meuse/geom": //TODO: IF ATTRIBUTE IS GEOM
-                        int xCoordLocation = rng.nextInt(clouds);
-                        int yCoordLocation;
-                        do {
-                            yCoordLocation = rng.nextInt(clouds);
-                        } while (yCoordLocation == xCoordLocation);
+                // PRIMARY KEYS ARE REPLICATED IN ALL CLOUDS
+                case "meuseDB/meuse/gid": // TODO: IF ATTRIBUTE IS PRIMARY KEY
+                    for (int i = 0; i < clouds; i++) {
+                        mapping.get(i).put(a, buildProtectedAttributeName(a, i));
+                        splitDataset.get(i).put(buildProtectedAttributeName(a, i), dataset.get(a));
+                    }
+                    break;
+                // ALL GEOMETRIC OBJECTS ARE SPLIT
+                case "meuseDB/meuse/geom": //TODO: IF ATTRIBUTE IS GEOM
+                    int xCoordLocation = rng.nextInt(clouds);
+                    int yCoordLocation;
+                    do {
+                        yCoordLocation = rng.nextInt(clouds);
+                    } while (yCoordLocation == xCoordLocation);
 
-                        points.put(a, new SplitPoint(xCoordLocation, yCoordLocation));
-                        mapping.get(xCoordLocation).put(a, buildProtectedAttributeName(a, xCoordLocation));
-                        splitDataset.get(xCoordLocation).put(buildProtectedAttributeName(a, xCoordLocation), splitGeomColumn(dataset.get(a), "x"));
-                        mapping.get(yCoordLocation).put(a, buildProtectedAttributeName(a, yCoordLocation));
-                        splitDataset.get(yCoordLocation).put(buildProtectedAttributeName(a, yCoordLocation), splitGeomColumn(dataset.get(a), "y"));
-                        break;
-                    // THE REST ARE ASSIGNED TO RANDOM CLOUDS
-                    default:
-                        int cloud = rng.nextInt(clouds);
-                        mapping.get(cloud).put(a, buildProtectedAttributeName(a, cloud));
-                        splitDataset.get(cloud).put(buildProtectedAttributeName(a, cloud), dataset.get(a));
-                        break;
+                    points.put(a, new SplitPoint(xCoordLocation, yCoordLocation));
+                    mapping.get(xCoordLocation).put(a, buildProtectedAttributeName(a, xCoordLocation));
+                    splitDataset.get(xCoordLocation).put(buildProtectedAttributeName(a, xCoordLocation),
+                            splitGeomColumn(dataset.get(a), "x"));
+                    mapping.get(yCoordLocation).put(a, buildProtectedAttributeName(a, yCoordLocation));
+                    splitDataset.get(yCoordLocation).put(buildProtectedAttributeName(a, yCoordLocation),
+                            splitGeomColumn(dataset.get(a), "y"));
+                    break;
+                // THE REST ARE ASSIGNED TO RANDOM CLOUDS
+                default:
+                    int cloud = rng.nextInt(clouds);
+                    mapping.get(cloud).put(a, buildProtectedAttributeName(a, cloud));
+                    splitDataset.get(cloud).put(buildProtectedAttributeName(a, cloud), dataset.get(a));
+                    break;
                 }
             }
 
@@ -234,29 +236,29 @@ public class SplittingModule implements DataOperation {
             }
 
             // Fill in split dataset
-            for (String a: attributeNames) {
+            for (String a : attributeNames) {
                 switch (a) {
-                    // PRIMARY KEYS ARE REPLICATED IN ALL CLOUDS
-                    case "meuseDB/meuse/gid": // TODO: IF ATTRIBUTE IS PRIMARY KEY
-                        for (int i = 0; i < clouds; i++) {
+                // PRIMARY KEYS ARE REPLICATED IN ALL CLOUDS
+                case "meuseDB/meuse/gid": // TODO: IF ATTRIBUTE IS PRIMARY KEY
+                    for (int i = 0; i < clouds; i++) {
+                        splitDataset.get(i).put(loadedDataBase.get(i).get(a), dataset.get(a));
+                    }
+                    break;
+                // GEOMETRIC OBJECTS ARE SPLIT ACCORDING TO MAPPING & SPLITPOINTS
+                case "meuseDB/meuse/geom": // TODO: IF ATTRIBUTE IS GEOMETRIC ATTR
+                    int x = loadedSplitPoints.get(a).getX();
+                    int y = loadedSplitPoints.get(a).getY();
+                    splitDataset.get(x).put(loadedDataBase.get(x).get(a), splitGeomColumn(dataset.get(a), "x"));
+                    splitDataset.get(y).put(loadedDataBase.get(y).get(a), splitGeomColumn(dataset.get(a), "y"));
+                    break;
+                // THE REST ARE SPLIT ACCORDING TO EXISTING MAPPING
+                default:
+                    for (int i = 0; i < clouds; i++) {
+                        if (loadedDataBase.get(i).containsKey(a)) {
                             splitDataset.get(i).put(loadedDataBase.get(i).get(a), dataset.get(a));
                         }
-                        break;
-                    // GEOMETRIC OBJECTS ARE SPLIT ACCORDING TO MAPPING & SPLITPOINTS
-                    case "meuseDB/meuse/geom": // TODO: IF ATTRIBUTE IS GEOMETRIC ATTR
-                        int x = loadedSplitPoints.get(a).getX();
-                        int y = loadedSplitPoints.get(a).getY();
-                        splitDataset.get(x).put(loadedDataBase.get(x).get(a), splitGeomColumn(dataset.get(a), "x"));
-                        splitDataset.get(y).put(loadedDataBase.get(y).get(a), splitGeomColumn(dataset.get(a), "y"));
-                        break;
-                    // THE REST ARE SPLIT ACCORDING TO EXISTING MAPPING
-                    default:
-                        for (int i = 0; i < clouds; i++) {
-                            if (loadedDataBase.get(i).containsKey(a)) {
-                                splitDataset.get(i).put(loadedDataBase.get(i).get(a), dataset.get(a));
-                            }
-                        }
-                        break;
+                    }
+                    break;
                 }
             }
         }
@@ -271,7 +273,8 @@ public class SplittingModule implements DataOperation {
             }
             String[][] protectedContent = datasetByRows(protectedAttributeNames, splitDataset.get(i));
             //TODO add to existing clouds
-            commands.add(new SplitModuleCommand(attributeNames, protectedAttributeNames, loadedDataBase.get(i), loadedSplitPoints, content, protectedContent));
+            commands.add(new SplitModuleCommand(attributeNames, protectedAttributeNames, loadedDataBase.get(i),
+                    loadedSplitPoints, content, protectedContent));
         }
 
         return commands;
@@ -302,26 +305,26 @@ public class SplittingModule implements DataOperation {
 
         List<Criteria[]> splitCriteria = splitCriteria(criterias, loadedDataBase, points);
 
-        for (String a: attributeNames) {
+        for (String a : attributeNames) {
             switch (a) {
-                case "meuseDB/meuse/gid": // TODO: IF PRIMARY KEY
-                    for (int i = 0; i < clouds; i++) {
+            case "meuseDB/meuse/gid": // TODO: IF PRIMARY KEY
+                for (int i = 0; i < clouds; i++) {
+                    splitDataset.get(i).put(loadedDataBase.get(i).get(a), dataset.get(a));
+                }
+                break;
+            case "meuseDB/meuse/geom": // TODO: IF ATTR IS GEOMETRIC ATTR
+                int x = points.get(a).getX();
+                int y = points.get(a).getY();
+                splitDataset.get(x).put(loadedDataBase.get(x).get(a), splitGeomColumn(dataset.get(a), "x"));
+                splitDataset.get(y).put(loadedDataBase.get(y).get(a), splitGeomColumn(dataset.get(a), "y"));
+                break;
+            default:
+                for (int i = 0; i < clouds; i++) {
+                    if (loadedDataBase.get(i).containsKey(a)) {
                         splitDataset.get(i).put(loadedDataBase.get(i).get(a), dataset.get(a));
                     }
-                    break;
-                case "meuseDB/meuse/geom": // TODO: IF ATTR IS GEOMETRIC ATTR
-                    int x = points.get(a).getX();
-                    int y = points.get(a).getY();
-                    splitDataset.get(x).put(loadedDataBase.get(x).get(a), splitGeomColumn(dataset.get(a), "x"));
-                    splitDataset.get(y).put(loadedDataBase.get(y).get(a), splitGeomColumn(dataset.get(a), "y"));
-                    break;
-                default:
-                    for (int i = 0; i < clouds; i++) {
-                        if (loadedDataBase.get(i).containsKey(a)) {
-                            splitDataset.get(i).put(loadedDataBase.get(i).get(a), dataset.get(a));
-                        }
-                    }
-                    break;
+                }
+                break;
             }
         }
 
@@ -333,7 +336,8 @@ public class SplittingModule implements DataOperation {
                 protectedAttributeNames[j] = loadedDataBase.get(i).get(attrNames[j]);
             }
             String[][] protectedContent = datasetByRows(protectedAttributeNames, splitDataset.get(i));
-            SplitModuleCommand command = new SplitModuleCommand(attributeNames, protectedAttributeNames, loadedDataBase.get(i), splitPoints, content, protectedContent);
+            SplitModuleCommand command = new SplitModuleCommand(attributeNames, protectedAttributeNames,
+                    loadedDataBase.get(i), splitPoints, content, protectedContent);
             command.setCriteria(splitCriteria.get(i));
             command.setOriginalCriteria(criterias);
             commands.add(command);
@@ -365,7 +369,8 @@ public class SplittingModule implements DataOperation {
             for (int j = 0; j < attrNames.length; j++) {
                 protectedAttributeNames[j] = loadedDataBase.get(i).get(attrNames[j]);
             }
-            SplitModuleCommand command = new SplitModuleCommand(attributeNames, protectedAttributeNames, loadedDataBase.get(i), splitPoints, null, null);
+            SplitModuleCommand command = new SplitModuleCommand(attributeNames, protectedAttributeNames,
+                    loadedDataBase.get(i), splitPoints, null, null);
             command.setCriteria(splitCriteria.get(i));
             command.setOriginalCriteria(criterias);
             commands.add(command);
@@ -380,8 +385,6 @@ public class SplittingModule implements DataOperation {
         return dataBase;
     }
 
-
-    //TODO: Temp method for testing ------------------------------------------------------------------------------
     private List<DataOperationCommand> krigingFirst(String attributeName, String geoAttributeName, String point) {
         //todo Testing load data base
         List<Map<String, String>> loadedDataBase = dataBase;
@@ -399,14 +402,8 @@ public class SplittingModule implements DataOperation {
         // what's its name?
         String xAttributeName = loadedDataBase.get(x).get(geoAttributeName);
 
-        KrigingModuleCommand kmc = new KrigingModuleCommand(
-                new String[] {geoAttributeName},
-                new String[] {xAttributeName},
-                loadedDataBase.get(x),
-                points,
-                attributeName,
-                geoAttributeName,
-                point);
+        KrigingModuleCommand kmc = new KrigingModuleCommand(new String[] { geoAttributeName },
+                new String[] { xAttributeName }, loadedDataBase.get(x), points, attributeName, geoAttributeName, point);
 
         commands.set(x, kmc);
 
@@ -415,14 +412,8 @@ public class SplittingModule implements DataOperation {
         int y = points.get(geoAttributeName).getY();
         // what's its name
         String yAttributeName = loadedDataBase.get(y).get(geoAttributeName);
-        kmc = new KrigingModuleCommand(
-                new String[] {geoAttributeName},
-                new String[] {yAttributeName},
-                loadedDataBase.get(y),
-                points,
-                attributeName,
-                geoAttributeName,
-                point);
+        kmc = new KrigingModuleCommand(new String[] { geoAttributeName }, new String[] { yAttributeName },
+                loadedDataBase.get(y), points, attributeName, geoAttributeName, point);
 
         commands.set(y, kmc);
 
@@ -439,22 +430,14 @@ public class SplittingModule implements DataOperation {
         String measureAttributeName = loadedDataBase.get(measureCloud).get(attributeName);
 
         if (x == measureCloud) {
-            ((KrigingModuleCommand)commands.get(x)).addAttributeName(attributeName);
-            ((KrigingModuleCommand)commands.get(x)).addProtectedAttributeName(measureAttributeName);
+            ((KrigingModuleCommand) commands.get(x)).addAttributeName(attributeName);
+            ((KrigingModuleCommand) commands.get(x)).addProtectedAttributeName(measureAttributeName);
         } else if (y == measureCloud) {
-            ((KrigingModuleCommand)commands.get(y)).addAttributeName(attributeName);
-            ((KrigingModuleCommand)commands.get(y)).addProtectedAttributeName(measureAttributeName);
+            ((KrigingModuleCommand) commands.get(y)).addAttributeName(attributeName);
+            ((KrigingModuleCommand) commands.get(y)).addProtectedAttributeName(measureAttributeName);
         } else {
-           commands.set(measureCloud,
-                   new SplitModuleCommand(
-                           new String[] {attributeName},
-                           new String[] {measureAttributeName},
-                           loadedDataBase.get(measureCloud),
-                           points,
-                           null,
-                           null
-                   )
-           );
+            commands.set(measureCloud, new SplitModuleCommand(new String[] { attributeName },
+                    new String[] { measureAttributeName }, loadedDataBase.get(measureCloud), points, null, null));
         }
 
         return commands;
@@ -473,7 +456,7 @@ public class SplittingModule implements DataOperation {
 
         // One of the KMC will be used for next calls
         KrigingModuleCommand kmc = null;
-        for (DataOperationCommand c: commands) {
+        for (DataOperationCommand c : commands) {
             if (c != null && c instanceof KrigingModuleCommand) {
                 kmc = (KrigingModuleCommand) c;
                 break;
@@ -489,42 +472,42 @@ public class SplittingModule implements DataOperation {
         int y = points.get(kmc.getGeomAttribute()).getY();
 
         switch (kmc.getStep()) {
-            case 1:
-                kmc.nextStep();
-                kmc.setxCoordinate(transpose(contents.get(x))[0]);
-                kmc.setyCoordinate(transpose(contents.get(y))[0]);
-                for (int i = 0; i < commands.size(); i++) {
-                    if (commands.get(i) != null && commands.get(i).getMapping().containsKey(kmc.getMeasure())) {
-                        String[][] content = transpose(contents.get(i));
-                        kmc.setMeasureContents(content[content.length - 1]);
-                    }
+        case 1:
+            kmc.nextStep();
+            kmc.setxCoordinate(transpose(contents.get(x))[0]);
+            kmc.setyCoordinate(transpose(contents.get(y))[0]);
+            for (int i = 0; i < commands.size(); i++) {
+                if (commands.get(i) != null && commands.get(i).getMapping().containsKey(kmc.getMeasure())) {
+                    String[][] content = transpose(contents.get(i));
+                    kmc.setMeasureContents(content[content.length - 1]);
                 }
-                kmc.setProtectedAttributeNames(new String[] {Constants.krigingCalculateX + "(" + loadedDataBase.get(x).get(kmc.getGeomAttribute()) + ")"});
-                results.set(x, kmc);
-                break;
-            case 2:
-                kmc.nextStep();
-                String[] calculateX = transpose(contents.get(x))[0];
-                kmc.setProtectedAttributeNames(new String[] {Constants.krigingCalculateY + "(" + loadedDataBase.get(y).get(kmc.getGeomAttribute()) + ", {" + String.join(",", calculateX) + "})"});
-                results.set(y, kmc);
-                break;
-            case 3:
-                String[] calculatedOnCloud = transpose(contents.get(y))[0];
-                kmc.setCalculatedOnCloud(calculatedOnCloud);
-                String[][] k = kmc.calculateKriging();
-                results = new ArrayList<>();
-                results.add(new KrigingModuleResponse(
-                        new String[] {"value", "variance"},
-                        k
-                ));
-                break;
+            }
+            kmc.setProtectedAttributeNames(new String[] {
+                    Constants.krigingCalculateX + "(" + loadedDataBase.get(x).get(kmc.getGeomAttribute()) + ")" });
+            results.set(x, kmc);
+            break;
+        case 2:
+            kmc.nextStep();
+            String[] calculateX = transpose(contents.get(x))[0];
+            kmc.setProtectedAttributeNames(
+                    new String[] { Constants.krigingCalculateY + "(" + loadedDataBase.get(y).get(kmc.getGeomAttribute())
+                            + ", {" + String.join(",", calculateX) + "})" });
+            results.set(y, kmc);
+            break;
+        case 3:
+            String[] calculatedOnCloud = transpose(contents.get(y))[0];
+            kmc.setCalculatedOnCloud(calculatedOnCloud);
+            String[][] k = kmc.calculateKriging();
+            results = new ArrayList<>();
+            results.add(new KrigingModuleResponse(new String[] { "value", "variance" }, k));
+            break;
         }
 
         return results;
     }
-    //TODO: End temp method for testing --------------------------------------------------------------------------
 
-    private List<String[][]> filterContentsByPrimaryKey(String keyAttribute, List<DataOperationCommand> promise, List<String[][]> contents) {
+    private List<String[][]> filterContentsByPrimaryKey(String keyAttribute, List<DataOperationCommand> promise,
+            List<String[][]> contents) {
 
         // Index table of results by primary key
         final List<Map<String, String[]>> indexedTables = new ArrayList<>();
@@ -543,21 +526,20 @@ public class SplittingModule implements DataOperation {
         // Intersection of results, remove records whose
         // primary keys are not in results from all clouds
         Set<String> ids = indexedTables.stream().map(Map::keySet).flatMap(Set::stream).collect(Collectors.toSet());
-        Map<String, Boolean> inAll = ids.stream()
-                .collect(Collectors.toMap(s -> s, s -> indexedTables.stream().map(m -> m.containsKey(s)).reduce(true, (a, b) -> a&& b)));
+        Map<String, Boolean> inAll = ids.stream().collect(Collectors.toMap(s -> s,
+                s -> indexedTables.stream().map(m -> m.containsKey(s)).reduce(true, (a, b) -> a && b)));
         for (Map<String, String[]> m : indexedTables) {
             for (String id : inAll.keySet()) {
-                if (!inAll.get(id)) m.remove(id);
+                if (!inAll.get(id))
+                    m.remove(id);
             }
         }
 
         // Reconstruct filtered results
         List<String[][]> contentsIntersection = new ArrayList<>();
         for (Map<String, String[]> m : indexedTables) {
-            String[][] t = m.entrySet().stream()
-                    .sorted(Comparator.comparing(e -> Integer.valueOf(e.getKey())))
-                    .map(Map.Entry::getValue)
-                    .toArray(String[][]::new);
+            String[][] t = m.entrySet().stream().sorted(Comparator.comparing(e -> Integer.valueOf(e.getKey())))
+                    .map(Map.Entry::getValue).toArray(String[][]::new);
             contentsIntersection.add(t);
         }
         return contentsIntersection;
@@ -570,9 +552,7 @@ public class SplittingModule implements DataOperation {
             for (Criteria c : criteria) {
                 int pos;
                 if ((pos = haveAttribute(attributeNames, c.getAttributeName())) != -1) {
-                    contents = Arrays.stream(contents)
-                            .filter(getPredicate(c, pos))
-                            .toArray(String[][]::new);
+                    contents = Arrays.stream(contents).filter(getPredicate(c, pos)).toArray(String[][]::new);
                 }
             }
 
@@ -593,43 +573,45 @@ public class SplittingModule implements DataOperation {
 
     private Predicate<String[]> getPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-            case "=":
-                return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
-            case ">":
-                return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
-            case ">=":
-                return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
-            case "<":
-                return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
-            case "<=":
-                return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
-            case Constants.area:
-                return p -> {
-                    double[] boundaries = Arrays.stream(c.getValue().split(","))
-                            .mapToDouble(Double::parseDouble)
-                            .toArray();
-                    return inArea(p[pos], boundaries);
-                };
-            case Constants.in:
-                return p -> {
-                    String[] listOfValues = c.getValue().split(",");
-                    List<String> listOfStrings = Arrays.asList(listOfValues);
-                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble).collect(Collectors.toList());
-                    return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
-                };
-            default:
-                return p -> true;
+        case "=":
+            return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
+        case ">":
+            return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
+        case ">=":
+            return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
+        case "<":
+            return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
+        case "<=":
+            return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
+        case Constants.area:
+            return p -> {
+                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                return inArea(p[pos], boundaries);
+            };
+        case Constants.in:
+            return p -> {
+                String[] listOfValues = c.getValue().split(",");
+                List<String> listOfStrings = Arrays.asList(listOfValues);
+                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                        .collect(Collectors.toList());
+                return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
+            };
+        default:
+            return p -> true;
         }
     }
 
-    private List<DataOperationCommand> genericOutboundGET(String[] attributeNames, List<List<String>> protAttr, List<Map<String, String>> loadedDataBase, Map<String,SplitPoint> points, Criteria[] originalCriteria, List<Criteria[]> criteria) {
+    private List<DataOperationCommand> genericOutboundGET(String[] attributeNames, List<List<String>> protAttr,
+            List<Map<String, String>> loadedDataBase, Map<String, SplitPoint> points, Criteria[] originalCriteria,
+            List<Criteria[]> criteria) {
         List<DataOperationCommand> commands = new ArrayList<>();
         int clouds = loadedDataBase.size();
 
         for (int i = 0; i < clouds; i++) {
             String[] protAttrNames = new String[protAttr.get(i).size()];
             protAttrNames = protAttr.get(i).toArray(protAttrNames);
-            SplitModuleCommand command = new SplitModuleCommand(attributeNames, protAttrNames, loadedDataBase.get(i), points, null, null);
+            SplitModuleCommand command = new SplitModuleCommand(attributeNames, protAttrNames, loadedDataBase.get(i),
+                    points, null, null);
             if (criteria != null) {
                 command.setCriteria(criteria.get(i));
                 command.setOriginalCriteria(originalCriteria);
@@ -639,7 +621,8 @@ public class SplittingModule implements DataOperation {
         return commands;
     }
 
-    private List<Criteria[]> splitCriteria(Criteria[] criteria, List<Map<String, String>> loadedDatabase, Map<String, SplitPoint> points) {
+    private List<Criteria[]> splitCriteria(Criteria[] criteria, List<Map<String, String>> loadedDatabase,
+            Map<String, SplitPoint> points) {
         int clouds = loadedDatabase.size();
         List<List<Criteria>> splitCriteria = new LinkedList<>();
         for (int i = 0; i < clouds; i++) {
@@ -655,18 +638,18 @@ public class SplittingModule implements DataOperation {
             } else {
                 for (int i = 0; i < clouds; i++) {
                     if (loadedDatabase.get(i).containsKey(c.getAttributeName())) {
-                        splitCriteria.get(i).add(new Criteria(loadedDatabase.get(i).get(c.getAttributeName()), c.getOperator(), c.getValue()));
+                        splitCriteria.get(i).add(new Criteria(loadedDatabase.get(i).get(c.getAttributeName()),
+                                c.getOperator(), c.getValue()));
                     }
                 }
             }
         }
 
-        return splitCriteria.stream()
-                .map(list -> list.toArray(new Criteria[list.size()]))
-                .collect(Collectors.toList());
+        return splitCriteria.stream().map(list -> list.toArray(new Criteria[list.size()])).collect(Collectors.toList());
     }
 
-    private List<Criteria> splitAreaCriteria(Criteria criteria, List<Map<String, String>> loadedDataBase, Map<String,SplitPoint> points) {
+    private List<Criteria> splitAreaCriteria(Criteria criteria, List<Map<String, String>> loadedDataBase,
+            Map<String, SplitPoint> points) {
         List<Criteria> criterias = new ArrayList<>();
 
         for (int i = 0; i < loadedDataBase.size(); i++) {
@@ -677,12 +660,12 @@ public class SplittingModule implements DataOperation {
 
         String[] area = criteria.getValue().split(",");
 
-        String[] areaX = {area[0], Constants.MIN_Y, area[2], Constants.MAX_Y};
+        String[] areaX = { area[0], Constants.MIN_Y, area[2], Constants.MAX_Y };
         criterias.get(x).setAttributeName(loadedDataBase.get(x).get(criteria.getAttributeName()));
         criterias.get(x).setOperator(criteria.getOperator());
         criterias.get(x).setValue(String.join(",", areaX));
 
-        String[] areaY = {Constants.MIN_X, area[1], Constants.MAX_X, area[3]};
+        String[] areaY = { Constants.MIN_X, area[1], Constants.MAX_X, area[3] };
         criterias.get(y).setAttributeName(loadedDataBase.get(y).get(criteria.getAttributeName()));
         criterias.get(y).setOperator(criteria.getOperator());
         criterias.get(y).setValue(String.join(",", areaY));
@@ -728,7 +711,8 @@ public class SplittingModule implements DataOperation {
             try {
                 byte[] enc = SymmetricCrypto.encrypt(column[i].getBytes("UTF-8"), "KEY?");
                 encryptedColumn[i] = encoder.encodeToString(enc);
-            } catch (Exception e) {/*Sorry*/}
+            } catch (Exception e) {
+                /*Sorry*/}
         }
         return encryptedColumn;
     }
@@ -740,19 +724,20 @@ public class SplittingModule implements DataOperation {
             try {
                 byte[] dec = SymmetricCrypto.decrypt(decoder.decode(column[i]), "KEY?");
                 decryptedColumn[i] = new String(dec, "UTF-8");
-            } catch (Exception e) {/*Sorry*/}
+            } catch (Exception e) {
+                /*Sorry*/}
         }
         return decryptedColumn;
     }
 
     private String[] splitGeomColumn(String[] column, String coordinate) {
         switch (coordinate) {
-            case "x":
-                return Arrays.stream(column).map(this::separateX).toArray(String[]::new);
-            case "y":
-                return Arrays.stream(column).map(this::separateY).toArray(String[]::new);
-            default:
-                return null;
+        case "x":
+            return Arrays.stream(column).map(this::separateX).toArray(String[]::new);
+        case "y":
+            return Arrays.stream(column).map(this::separateY).toArray(String[]::new);
+        default:
+            return null;
         }
     }
 
@@ -820,7 +805,6 @@ public class SplittingModule implements DataOperation {
         PrecisionModel pmodel = new PrecisionModel();
         GeometryFactory builder = new GeometryFactory(pmodel, 4326);
 
-
         try {
             geom = reader.read(WKBReader.hexToBytes(wkbX));
             coordX = geom.getCoordinate();
@@ -841,4 +825,3 @@ public class SplittingModule implements DataOperation {
         return String.join("/", s);
     }
 }
-
