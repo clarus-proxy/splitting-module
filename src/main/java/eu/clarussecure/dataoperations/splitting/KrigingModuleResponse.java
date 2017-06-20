@@ -4,13 +4,13 @@ import eu.clarussecure.dataoperations.DataOperationResponse;
 
 import java.util.Random;
 
-public class KrigingModuleResponse extends DataOperationResponse{
+public class KrigingModuleResponse extends DataOperationResponse {
     private KrigingResult result;
 
     public KrigingModuleResponse(String[] attributeNames, String[][] contents) {
 
         super.id = new Random().nextInt();
-        super.attributeNames = attributeNames;  //headers originales
+        super.attributeNames = attributeNames; // headers originales
         super.contents = contents;
     }
 

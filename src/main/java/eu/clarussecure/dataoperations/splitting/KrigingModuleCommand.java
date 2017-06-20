@@ -20,9 +20,8 @@ public class KrigingModuleCommand extends DataOperationCommand {
     private String[] xCoordinate;
     private String[] yCoordinate;
 
-    public KrigingModuleCommand(String[] attributeNames, String[] protectedAttributeNames,
-                                Map<String, String> mapping, Map<String, SplitPoint> splitPoints,
-                                String measure, String geomAttribute, String point) {
+    public KrigingModuleCommand(String[] attributeNames, String[] protectedAttributeNames, Map<String, String> mapping,
+            Map<String, SplitPoint> splitPoints, String measure, String geomAttribute, String point) {
         super.id = new Random().nextInt();
         super.attributeNames = attributeNames;
         super.protectedAttributeNames = protectedAttributeNames;
@@ -38,8 +37,9 @@ public class KrigingModuleCommand extends DataOperationCommand {
     }
 
     public String[][] calculateKriging() {
-        KrigingResult k = KrigingCalculator.calculate(xCoordinate, yCoordinate, measureContents, calculatedOnCloud, point);
-        return new String[][] {{String.valueOf(k.ZEstimation), String.valueOf(k.kriegageVvariance)}};
+        KrigingResult k = KrigingCalculator.calculate(xCoordinate, yCoordinate, measureContents, calculatedOnCloud,
+                point);
+        return new String[][] { { String.valueOf(k.ZEstimation), String.valueOf(k.kriegageVvariance) } };
     }
 
     public int getStep() {
@@ -77,14 +77,14 @@ public class KrigingModuleCommand extends DataOperationCommand {
     public void addAttributeName(String attributeName) {
         String[] newAttributes = new String[attributeNames.length + 1];
         System.arraycopy(attributeNames, 0, newAttributes, 0, attributeNames.length);
-        newAttributes[newAttributes.length -1] = attributeName;
+        newAttributes[newAttributes.length - 1] = attributeName;
         attributeNames = newAttributes;
     }
 
     public void addProtectedAttributeName(String protectedAttributeName) {
         String[] newAttributes = new String[protectedAttributeNames.length + 1];
         System.arraycopy(protectedAttributeNames, 0, newAttributes, 0, protectedAttributeNames.length);
-        newAttributes[newAttributes.length -1] = protectedAttributeName;
+        newAttributes[newAttributes.length - 1] = protectedAttributeName;
         protectedAttributeNames = newAttributes;
     }
 

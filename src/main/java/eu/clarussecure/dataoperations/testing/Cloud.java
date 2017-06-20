@@ -39,9 +39,7 @@ public class Cloud {
                 int pos = 0;
                 if ((pos = haveAttribute(c.getAttributeName())) != -1) {
                     final int P = pos;
-                    loadedData = Arrays.stream(loadedData)
-                            .filter(getPredicate(c, P))
-                            .toArray(String[][]::new);
+                    loadedData = Arrays.stream(loadedData).filter(getPredicate(c, P)).toArray(String[][]::new);
                 }
             }
         }
@@ -51,7 +49,7 @@ public class Cloud {
         }
         Map<String, String[]> table = datasetByColumns(attributes, loadedData);
 
-        for (String a: protectedAttributeNames) {
+        for (String a : protectedAttributeNames) {
             if (a.contains(Constants.krigingCalculateX)) {
                 String geomAttr = a.split("(\\(|\\))")[1];
                 String[] calculateX = calculateX(geomAttr);
@@ -64,44 +62,25 @@ public class Cloud {
             }
         }
 
-        /*if (extraContent != null && extraContent.length > 0) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(extraContent[0]));
-            String instruction = null;
-            try {
-                instruction = in.readLine();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            switch (instruction) {
-                case Constants.krigingCalculateX:
-                    String attribute = null;
-                    try {
-                        attribute = in.readLine();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    String[] calculateX = this.calculateX(attribute);
-                    table.put(protectedAttributeNames[0], calculateX);
-                    break;
-                case Constants.krigingCalculateY:
-                    attribute = null;
-                    calculateX = null;
-                    try {
-                        attribute = in.readLine();
-                        calculateX = in.readLine().split(":");
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    String[] calculateY = this.calculateY(attribute, calculateX);
-                    table.put(protectedAttributeNames[0], calculateY);
-                    break;
-                default:
-                    break;
-            }
-        }*/
+        /*
+         * if (extraContent != null && extraContent.length > 0) { BufferedReader
+         * in = new BufferedReader(new InputStreamReader(extraContent[0]));
+         * String instruction = null; try { instruction = in.readLine(); } catch
+         * (IOException e) { e.printStackTrace(); } switch (instruction) { case
+         * Constants.krigingCalculateX: String attribute = null; try { attribute
+         * = in.readLine(); } catch (IOException e) { e.printStackTrace(); }
+         * String[] calculateX = this.calculateX(attribute);
+         * table.put(protectedAttributeNames[0], calculateX); break; case
+         * Constants.krigingCalculateY: attribute = null; calculateX = null; try
+         * { attribute = in.readLine(); calculateX = in.readLine().split(":"); }
+         * catch (IOException e) { e.printStackTrace(); } String[] calculateY =
+         * this.calculateY(attribute, calculateX);
+         * table.put(protectedAttributeNames[0], calculateY); break; default:
+         * break; } }
+         */
 
         Map<String, String[]> lTable = new HashMap<>();
-        for (String attr: protectedAttributeNames) {
+        for (String attr : protectedAttributeNames) {
             lTable.put(attr, table.get(attr));
         }
         return datasetByRows(protectedAttributeNames, lTable);
@@ -114,8 +93,7 @@ public class Cloud {
                 int pos = 0;
                 if ((pos = haveAttribute(c.getAttributeName())) != -1) {
                     final int P = pos;
-                    loadedData = Arrays.stream(loadedData)
-                            .filter(getNegatedPredicate(c, P))
+                    loadedData = Arrays.stream(loadedData).filter(getNegatedPredicate(c, P))
                             .toArray(size -> new String[size][]);
                 }
             }
@@ -148,95 +126,94 @@ public class Cloud {
 
     private Predicate<String[]> getPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-            case "=":
-                return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
-            case ">":
-                return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
-            case ">=":
-                return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
-            case "<":
-                return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
-            case "<=":
-                return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
-            case Constants.area:
-                return p -> {
-                    double[] boundaries = Arrays.stream(c.getValue().split(","))
-                            .mapToDouble(Double::parseDouble)
-                            .toArray();
-                    return inArea(p[pos], boundaries);
-                };
-            case Constants.in:
-                return p -> {
-                    String[] listOfValues = c.getValue().split(",");
-                    List<String> listOfStrings = Arrays.asList(listOfValues);
-                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble).collect(Collectors.toList());
-                    return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
-                };
-            default:
-                return p -> true;
+        case "=":
+            return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
+        case ">":
+            return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
+        case ">=":
+            return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
+        case "<":
+            return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
+        case "<=":
+            return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
+        case Constants.area:
+            return p -> {
+                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                return inArea(p[pos], boundaries);
+            };
+        case Constants.in:
+            return p -> {
+                String[] listOfValues = c.getValue().split(",");
+                List<String> listOfStrings = Arrays.asList(listOfValues);
+                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                        .collect(Collectors.toList());
+                return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
+            };
+        default:
+            return p -> true;
         }
     }
 
     private IntPredicate getPredicateByInt(Criteria c, final int pos) {
         switch (c.getOperator()) {
-            case "=":
-                return p -> data[p][pos].equals(c.getValue()) || Double.parseDouble(data[p][pos]) == Double.parseDouble(c.getValue());
-            case ">":
-                return p -> Double.parseDouble(data[p][pos]) > Double.parseDouble(c.getValue());
-            case ">=":
-                return p -> Double.parseDouble(data[p][pos]) >= Double.parseDouble(c.getValue());
-            case "<":
-                return p -> Double.parseDouble(data[p][pos]) < Double.parseDouble(c.getValue());
-            case "<=":
-                return p -> Double.parseDouble(data[p][pos]) <= Double.parseDouble(c.getValue());
-            case Constants.area:
-                return p -> {
-                    double[] boundaries = Arrays.stream(c.getValue().split(","))
-                            .mapToDouble(Double::parseDouble)
-                            .toArray();
-                    return inArea(data[p][pos], boundaries);
-                };
-            case Constants.in:
-                return p -> {
-                    String[] listOfValues = c.getValue().split(",");
-                    List<String> listOfStrings = Arrays.asList(listOfValues);
-                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble).collect(Collectors.toList());
-                    return listOfStrings.contains(data[p][pos]) || listOfDoubles.contains(Double.parseDouble(data[p][pos]));
-                };
-            default:
-                return p -> true;
+        case "=":
+            return p -> data[p][pos].equals(c.getValue())
+                    || Double.parseDouble(data[p][pos]) == Double.parseDouble(c.getValue());
+        case ">":
+            return p -> Double.parseDouble(data[p][pos]) > Double.parseDouble(c.getValue());
+        case ">=":
+            return p -> Double.parseDouble(data[p][pos]) >= Double.parseDouble(c.getValue());
+        case "<":
+            return p -> Double.parseDouble(data[p][pos]) < Double.parseDouble(c.getValue());
+        case "<=":
+            return p -> Double.parseDouble(data[p][pos]) <= Double.parseDouble(c.getValue());
+        case Constants.area:
+            return p -> {
+                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                return inArea(data[p][pos], boundaries);
+            };
+        case Constants.in:
+            return p -> {
+                String[] listOfValues = c.getValue().split(",");
+                List<String> listOfStrings = Arrays.asList(listOfValues);
+                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                        .collect(Collectors.toList());
+                return listOfStrings.contains(data[p][pos]) || listOfDoubles.contains(Double.parseDouble(data[p][pos]));
+            };
+        default:
+            return p -> true;
         }
 
     }
 
     private Predicate<String[]> getNegatedPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-            case "=":
-                return p -> !(p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue()));
-            case ">":
-                return p -> !(Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue()));
-            case ">=":
-                return p -> !(Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue()));
-            case "<":
-                return p -> !(Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue()));
-            case "<=":
-                return p -> !(Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue()));
-            case Constants.area:
-                return p -> {
-                    double[] boundaries = Arrays.stream(c.getValue().split(","))
-                            .mapToDouble(Double::parseDouble)
-                            .toArray();
-                    return !inArea(p[pos], boundaries);
-                };
-            case Constants.in:
-                return p -> {
-                    String[] listOfValues = c.getValue().split(",");
-                    List<String> listOfStrings = Arrays.asList(listOfValues);
-                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble).collect(Collectors.toList());
-                    return !(listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos])));
-                };
-            default:
-                return p -> false;
+        case "=":
+            return p -> !(p[pos].equals(c.getValue())
+                    || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue()));
+        case ">":
+            return p -> !(Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue()));
+        case ">=":
+            return p -> !(Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue()));
+        case "<":
+            return p -> !(Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue()));
+        case "<=":
+            return p -> !(Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue()));
+        case Constants.area:
+            return p -> {
+                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                return !inArea(p[pos], boundaries);
+            };
+        case Constants.in:
+            return p -> {
+                String[] listOfValues = c.getValue().split(",");
+                List<String> listOfStrings = Arrays.asList(listOfValues);
+                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                        .collect(Collectors.toList());
+                return !(listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos])));
+            };
+        default:
+            return p -> false;
         }
     }
 
@@ -245,8 +222,8 @@ public class Cloud {
         int gpos = Arrays.asList(attributes).indexOf(geoAttributeName);
         String[] result;
 
-        for(int i=0;i<data.length;i++) {
-            for(int j=i;j<data.length;j++) {
+        for (int i = 0; i < data.length; i++) {
+            for (int j = i; j < data.length; j++) {
 
                 BigDecimal dist = null, xi = null, xj = null;
 
@@ -264,7 +241,7 @@ public class Cloud {
         }
 
         result = new String[resultList.size()];
-        for(int i=0; i<resultList.size(); i++){
+        for (int i = 0; i < resultList.size(); i++) {
             result[i] = resultList.get(i).toString();
         }
         return result;
@@ -277,12 +254,12 @@ public class Cloud {
         String[] result;
         int gpos = Arrays.asList(attributes).indexOf(geoAttributeName);
 
-        for(int i=0; i<xPoints.length; i++){
+        for (int i = 0; i < xPoints.length; i++) {
             xList.add(new BigDecimal(xPoints[i]));
         }
 
-        for(int i=0;i<data.length;i++) {
-            for(int j=i;j<data.length;j++) {
+        for (int i = 0; i < data.length; i++) {
+            for (int j = i; j < data.length; j++) {
 
                 BigDecimal dist = null, yi = null, yj = null;
 
@@ -302,22 +279,21 @@ public class Cloud {
         resultList = calculateDistance(xList, yList);
 
         result = new String[resultList.size()];
-        for(int i=0; i<resultList.size(); i++){
+        for (int i = 0; i < resultList.size(); i++) {
             result[i] = resultList.get(i).toString();
         }
         return result;
     }
 
-
     public List<BigDecimal> calculateDistance(List<BigDecimal> xPoints, List<BigDecimal> yPoints) {
         List<BigDecimal> result = new ArrayList<BigDecimal>();
-        for(int i=0;i<xPoints.size();i++) {
+        for (int i = 0; i < xPoints.size(); i++) {
             result.add(sqrt(xPoints.get(i).add(yPoints.get(i))));
         }
-        
+
         return result;
     }
-    
+
     private BigDecimal sqrt(BigDecimal x) {
         return BigDecimal.valueOf(StrictMath.sqrt(x.doubleValue()));
     }
@@ -353,7 +329,8 @@ public class Cloud {
     }
 
     public static Map<String, String[]> datasetByColumns(String[] attributeNames, String[][] content) {
-        // Have content in matrix[rows][columns] need content in matrix[columns][rows]
+        // Have content in matrix[rows][columns] need content in
+        // matrix[columns][rows]
         String[][] transposedContent = transpose(content);
         Map<String, String[]> table = new HashMap<>();
         for (int i = 0; i < attributeNames.length; i++) {
@@ -384,7 +361,7 @@ public class Cloud {
         return transposedContent;
     }
 
-    public int haveAttribute (String attributeName) {
+    public int haveAttribute(String attributeName) {
         int pos = -1;
         for (int i = 0; i < attributes.length; i++) {
             if (attributes[i].equals(attributeName)) {

@@ -17,37 +17,39 @@ import java.util.List;
 
 public class Demo {
 
-	public static void main(String[] args) throws IOException {
-		List<Cloud> clouds = new ArrayList<>();
+    public static void main(String[] args) throws IOException {
+        List<Cloud> clouds = new ArrayList<>();
 
-		// Load data at client application
+        // Load data at client application
         File file = new File("./datasets/meuse2.txt");
-        DatasetParser datasetParser = new DatasetParser(file , ",");
+        DatasetParser datasetParser = new DatasetParser(file, ",");
         String[] attributes = datasetParser.parseHeaders();
         String[][] dataOri = datasetParser.parseDataset();
 
         // Instantiate Splitting Module
-		byte[] xmlProperties = loadXmlFile("./datasets/properties3.xml");
-		Document document = Functions.readDocument(xmlProperties);
-		DataOperation splittingModule = new SplittingModule(document);
+        byte[] xmlProperties = loadXmlFile("./datasets/properties3.xml");
+        Document document = Functions.readDocument(xmlProperties);
+        DataOperation splittingModule = new SplittingModule(document);
 
-		// Post new dataset operation
-	    List<DataOperationCommand> commands = splittingModule.post(attributes, dataOri);
+        // Post new dataset operation
+        List<DataOperationCommand> commands = splittingModule.post(attributes, dataOri);
 
-	    // Create db in cloud
-	    for (DataOperationCommand c : commands) {
-	        clouds.add(new Cloud(c.getProtectedAttributeNames(), c.getProtectedContents()));
+        // Create db in cloud
+        for (DataOperationCommand c : commands) {
+            clouds.add(new Cloud(c.getProtectedAttributeNames(), c.getProtectedContents()));
         }
 
         // Show what it is in the cloud
         System.out.println("Contents in the cloud after first post.");
         for (Cloud c : clouds) {
-	        c.printContents();
+            c.printContents();
         }
         System.out.println("---------------------------------------");
 
         // Post new record operation
-        String[][] append = {{"500","1.800000000000000","25.000000000000000","97.000000000000000","251.000000000000000","9.073000000000000","0.228123000000000","9.000000000000000","1","1","0","Ag","300.000000000000000","0101000020E61000000000000040190641000000009C531441"}};
+        String[][] append = { { "500", "1.800000000000000", "25.000000000000000", "97.000000000000000",
+                "251.000000000000000", "9.073000000000000", "0.228123000000000", "9.000000000000000", "1", "1", "0",
+                "Ag", "300.000000000000000", "0101000020E61000000000000040190641000000009C531441" } };
         commands = splittingModule.post(attributes, append);
 
         // Update database
@@ -69,16 +71,17 @@ public class Demo {
         List<String[][]> contents = queryClouds(clouds, commands);
 
         // Back at CLARUS again
-        List<DataOperationResult>  results = splittingModule.get(commands, contents);
+        List<DataOperationResult> results = splittingModule.get(commands, contents);
 
         // Client application
         System.out.println("Response from get with no criteria.");
         printResponse(results);
         System.out.println("---------------------------------------");
 
-        //Retrieve an area from splitting example
+        // Retrieve an area from splitting example
 
-        Criteria criteria = new Criteria("meuseDB/meuse/geom", eu.clarussecure.dataoperations.splitting.Constants.area, "180199,331700,180700,332570");
+        Criteria criteria = new Criteria("meuseDB/meuse/geom", eu.clarussecure.dataoperations.splitting.Constants.area,
+                "180199,331700,180700,332570");
         Criteria[] criterias = new Criteria[1];
         criterias[0] = criteria;
 
@@ -120,7 +123,6 @@ public class Demo {
         printResponse(results);
         System.out.println("---------------------------------------");
 
-
         // Retrieve record by list of ids
 
         criteria = new Criteria("meuseDB/meuse/gid", Constants.in, "1,3,4,8");
@@ -145,14 +147,16 @@ public class Demo {
         deleteInClouds(clouds, commands);
 
         System.out.println("State of clouds after delete. -> gid in 1,2,3,4,5");
-        for (Cloud c: clouds) {
+        for (Cloud c : clouds) {
             c.printContents();
         }
         System.out.println("---------------------------------------");
 
         // Update a record
 
-        String[][] update = {{"500","2.800000000000000","24.000000000000000","100.000000000000000","250.000000000000000","10.073000000000000","1.228123000000000","8.000000000000000","2","2","2","Ag","300.000000000000000","0101000020E610000000000000F8DD054100000000004054C0"}};
+        String[][] update = { { "500", "2.800000000000000", "24.000000000000000", "100.000000000000000",
+                "250.000000000000000", "10.073000000000000", "1.228123000000000", "8.000000000000000", "2", "2", "2",
+                "Ag", "300.000000000000000", "0101000020E610000000000000F8DD054100000000004054C0" } };
         criteria = new Criteria("meuseDB/meuse/gid", "=", "500");
         criterias = new Criteria[1];
         criterias[0] = criteria;
@@ -174,14 +178,13 @@ public class Demo {
         printResponse(results);
         System.out.println("---------------------------------------");
 
-
         // KRIGING TEST
         System.out.println("KRIGING TEST");
 
         // cleanup clouds
         clouds = new ArrayList<>();
 
-        //load new dataset
+        // load new dataset
         attributes = new String[3];
         attributes[0] = "meuseDB/meuse/gid";
         attributes[1] = "meuseDB/meuse/zinc";
@@ -197,25 +200,25 @@ public class Demo {
         commands = splittingModule.post(attributes, dataOri);
 
         // Create DB in clouds
-        for (DataOperationCommand c: commands) {
+        for (DataOperationCommand c : commands) {
             clouds.add(new Cloud(c.getProtectedAttributeNames(), c.getProtectedContents()));
         }
 
         // Show contents in cloud
         System.out.println("Kriging dataset in clouds.");
-        for (Cloud c: clouds) {
+        for (Cloud c : clouds) {
             c.printContents();
         }
         System.out.println("--------------------------");
 
-
-        //testing of zinc at point (1,0)
-        criteria = new Criteria("meuseDB/meuse/zinc", eu.clarussecure.dataoperations.splitting.Constants.kriging, "meuseDB/meuse/geom:1,0");
+        // testing of zinc at point (1,0)
+        criteria = new Criteria("meuseDB/meuse/zinc", eu.clarussecure.dataoperations.splitting.Constants.kriging,
+                "meuseDB/meuse/geom:1,0");
         criterias = new Criteria[1];
         criterias[0] = criteria;
 
         // Orchestrated Kriging
-        //commands = splittingModule.get(attributes, criterias);
+        // commands = splittingModule.get(attributes, criterias);
         commands = splittingModule.get(null, criterias);
         contents = queryClouds(clouds, commands);
         results = splittingModule.get(commands, contents);
@@ -229,9 +232,9 @@ public class Demo {
                 break;
             }
         }
-	}
+    }
 
-	private static List<String[][]> queryClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
+    private static List<String[][]> queryClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
         List<String[][]> contents = new ArrayList<>();
         for (int i = 0; i < commands.size(); i++) {
             if (commands.get(i) == null) {
@@ -248,7 +251,7 @@ public class Demo {
     }
 
     private static void deleteInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
-	    for (int i = 0; i < commands.size(); i++) {
+        for (int i = 0; i < commands.size(); i++) {
             clouds.get(i).delete(commands.get(i).getCriteria());
         }
     }
@@ -259,46 +262,46 @@ public class Demo {
         }
     }
 
-	private static void printResponse(List<DataOperationResult> results) {
-	    for (DataOperationResult r: results) {
-	        DataOperationResponse re = (DataOperationResponse) r;
-	        System.out.println(String.join(", ", re.getAttributeNames()));
-	        for (String[] row : re.getContents()) {
-	            System.out.println(String.join(", ", row));
+    private static void printResponse(List<DataOperationResult> results) {
+        for (DataOperationResult r : results) {
+            DataOperationResponse re = (DataOperationResponse) r;
+            System.out.println(String.join(", ", re.getAttributeNames()));
+            for (String[] row : re.getContents()) {
+                System.out.println(String.join(", ", row));
             }
         }
     }
 
     private static List<DataOperationCommand> toCommands(List<DataOperationResult> results) {
-	    List<DataOperationCommand> commands = new ArrayList<>();
-	    for (DataOperationResult r: results) {
-	        if (r == null) {
-	            commands.add(null);
+        List<DataOperationCommand> commands = new ArrayList<>();
+        for (DataOperationResult r : results) {
+            if (r == null) {
+                commands.add(null);
             } else {
-	            commands.add((DataOperationCommand) r);
+                commands.add((DataOperationCommand) r);
             }
         }
         return commands;
     }
 
-	private static byte[] loadXmlFile(String filePropertiesName){
-		FileReader2 file;
-		String linea;
+    private static byte[] loadXmlFile(String filePropertiesName) {
+        FileReader2 file;
+        String linea;
 
-		file = new FileReader2(filePropertiesName);
-		StringBuilder sb = new StringBuilder();
-		while((linea=file.readLine())!=null){
+        file = new FileReader2(filePropertiesName);
+        StringBuilder sb = new StringBuilder();
+        while ((linea = file.readLine()) != null) {
             sb.append(linea);
-		}
+        }
 
-		String xml = sb.toString();
-		file.closeFile();
-		Functions.readProperties(xml);
-		System.out.println("Xml loaded");
-		return xml.getBytes();
-	}
+        String xml = sb.toString();
+        file.closeFile();
+        Functions.readProperties(xml);
+        System.out.println("Xml loaded");
+        return xml.getBytes();
+    }
 
-    private static String[][] loadData(){
+    private static String[][] loadData() {
         String data[][];
         PrecisionModel pmodel = new PrecisionModel();
         GeometryFactory builder = new GeometryFactory(pmodel, 4326);
@@ -307,21 +310,21 @@ public class Demo {
         Coordinate newCoord;
 
         data = new String[3][3];
-        data[0][0] = "1";   //gid
-        data[0][1] = "9";   //zinc
+        data[0][0] = "1"; // gid
+        data[0][1] = "9"; // zinc
         newCoord = new Coordinate(0, 1);
         geom = builder.createPoint(newCoord);
-        data[0][2] = WKBWriter.toHex(writer.write(geom));   //geom
-        data[1][0] = "2";   //gid
-        data[1][1] = "3";   //zinc
+        data[0][2] = WKBWriter.toHex(writer.write(geom)); // geom
+        data[1][0] = "2"; // gid
+        data[1][1] = "3"; // zinc
         newCoord = new Coordinate(0, 0);
         geom = builder.createPoint(newCoord);
-        data[1][2] = WKBWriter.toHex(writer.write(geom));   //geom
-        data[2][0] = "3";   //gid
-        data[2][1] = "4";   //zinc
+        data[1][2] = WKBWriter.toHex(writer.write(geom)); // geom
+        data[2][0] = "3"; // gid
+        data[2][1] = "4"; // zinc
         newCoord = new Coordinate(3, 0);
         geom = builder.createPoint(newCoord);
-        data[2][2] = WKBWriter.toHex(writer.write(geom));   //geom
+        data[2][2] = WKBWriter.toHex(writer.write(geom)); // geom
 
         return data;
     }
