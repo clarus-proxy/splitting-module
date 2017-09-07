@@ -24,6 +24,9 @@ public class Constants {
     final static public String k = "k";
     final static public String t = "t";
     final static public String clouds = "clouds";
+    final static public String splittingType = "splitting_type";
+    final static public String points = "points";
+    final static public String lines = "lines";
     final static public String id_key = "id_key";
     final static public String radius = "radius";
     final static public String coarseningType = "coarsening_type";
@@ -37,13 +40,6 @@ public class Constants {
     final static public String krigingCalculateX = "calculateX";
     final static public String krigingCalculateY = "calculateY";
     final static public String in = "in";
-
-    // AKKA fix: set geometry axis ranges for the SRID 3857
-    // TODO: review to be generic
-    final static public String MIN_X = "-20026376.39";
-    final static public String MIN_Y = "-20048966.10";
-    final static public String MAX_X = "20026376.39";
-    final static public String MAX_Y = "20048966.10";
 
     final static public int precision = 9;
     final static public int a = 10;

@@ -334,6 +334,7 @@ public class Functions {
             }
             if (s.equalsIgnoreCase(Constants.splitting)) {
                 Record.clouds = Integer.parseInt(getClouds(document));
+                Record.splittingType = getSplittingType(document);
             }
             if (s.equalsIgnoreCase(Constants.encryption)) {
                 Record.idKey = getIdKey(document);
@@ -469,6 +470,31 @@ public class Functions {
         }
 
         return clouds;
+    }
+
+    private static String getSplittingType(Document document) {
+        Node node;
+        NamedNodeMap attributes;
+        String protection;
+        String splittingType = null;
+        NodeList nodeList;
+
+        // URV fix: elements are retrieved by their name
+        nodeList = document.getElementsByTagName(Constants.attributeType);
+
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            node = nodeList.item(i);
+            attributes = node.getAttributes();
+            node = attributes.getNamedItem(Constants.protection);
+            protection = node.getNodeValue();
+            if (protection.equalsIgnoreCase(Constants.splitting)) {
+                node = attributes.getNamedItem(Constants.splittingType);
+                splittingType = node.getNodeValue();
+                break;
+            }
+        }
+
+        return splittingType;
     }
 
     private static String getIdKey(Document document) {

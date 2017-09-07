@@ -14,6 +14,7 @@ public class Record {
     static int k;
     static double t;
     static int clouds;
+    static String splittingType;
     static String idKey;
     static String coarsening_type;
     // AKKA fix: radius value depends on SRID. it could be a real

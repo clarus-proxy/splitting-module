@@ -1,6 +1,5 @@
 package eu.clarussecure.dataoperations.splitting;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -17,28 +16,19 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.postgis.Geometry;
+import org.postgis.LineString;
+import org.postgis.PGbox2d;
+import org.postgis.Point;
 import org.w3c.dom.Document;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateSequence;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.PrecisionModel;
-import com.vividsolutions.jts.io.ByteArrayInStream;
-import com.vividsolutions.jts.io.ByteOrderDataInStream;
-import com.vividsolutions.jts.io.ByteOrderValues;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBConstants;
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKBWriter;
-import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.io.WKTWriter;
 
 import eu.clarussecure.dataoperations.AttributeNamesUtilities;
 import eu.clarussecure.dataoperations.Criteria;
 import eu.clarussecure.dataoperations.DataOperation;
 import eu.clarussecure.dataoperations.DataOperationCommand;
 import eu.clarussecure.dataoperations.DataOperationResult;
+import eu.clarussecure.dataoperations.geometry.GeometryBuilder;
+import eu.clarussecure.dataoperations.geometry.ProjectedCRS;
 
 public class SplittingModule implements DataOperation {
     // todo Testing data base
@@ -952,13 +942,27 @@ public class SplittingModule implements DataOperation {
         String[] area = criteria.getValue().split(",");
 
         // AKKA fix: don't forget SRID
-        String[] areaX = { area[0], Constants.MIN_Y, area[2], Constants.MAX_Y, area[4] };
+        double minX, maxX, minY, maxY;
+        int srid = Integer.parseInt(area[4].trim());
+        if (srid != 0) {
+            ProjectedCRS crs = ProjectedCRS.resolve(srid);
+            minX = crs.getAxis("x").getMin();
+            maxX = crs.getAxis("x").getMax();
+            minY = crs.getAxis("y").getMin();
+            maxY = crs.getAxis("y").getMax();
+        } else {
+            minX = -Double.MAX_VALUE;
+            maxX = Double.MAX_VALUE;
+            minY = -Double.MAX_VALUE;
+            maxY = Double.MAX_VALUE;
+        }
+        String[] areaX = { area[0], Double.toString(minY), area[2], Double.toString(maxY), Integer.toString(srid) };
         criterias.get(x).setAttributeName(loadedDataBase.get(x).get(criteria.getAttributeName()));
         criterias.get(x).setOperator(criteria.getOperator());
         criterias.get(x).setValue(String.join(",", areaX));
 
         // AKKA fix: don't forget SRID
-        String[] areaY = { Constants.MIN_X, area[1], Constants.MAX_X, area[3], area[4] };
+        String[] areaY = { Double.toString(minX), area[1], Double.toString(maxX), area[3], Integer.toString(srid) };
         criterias.get(y).setAttributeName(loadedDataBase.get(y).get(criteria.getAttributeName()));
         criterias.get(y).setOperator(criteria.getOperator());
         criterias.get(y).setValue(String.join(",", areaY));
@@ -1042,15 +1046,14 @@ public class SplittingModule implements DataOperation {
     }
 
     private boolean inArea(String geomStr, double[] boundary) {
-        // AKKA fix: try to read geom in WKT format and then in WKB format
         double x = 0;
         double y = 0;
 
-        Map<String, Boolean> flags = new HashMap<>();
-        Geometry geom = toGeometry(geomStr, flags);
-        if (geom != null) {
-            x = geom.getCoordinate().x;
-            y = geom.getCoordinate().y;
+        GeometryBuilder builder = new GeometryBuilder();
+        Geometry geom = builder.decodeGeometry(geomStr);
+        if (geom != null && geom.numPoints() > 0) {
+            x = geom.getFirstPoint().x;
+            y = geom.getFirstPoint().y;
         }
 
         boolean inX = x >= boundary[0] && x <= boundary[2];
@@ -1060,142 +1063,145 @@ public class SplittingModule implements DataOperation {
 
     // Returns a String that has a correct X value and a random Y
     private String separateX(String geomStr) {
-        // AKKA fix: try to read geom in WKT format and then in WKB format
-        Map<String, Boolean> flags = new HashMap<>();
-        Geometry geom = toGeometry(geomStr, flags);
-
-        if (geom != null) {
-            Random rnd = new Random();
-            double minY = Double.parseDouble(Constants.MIN_Y);
-            double maxY = Double.parseDouble(Constants.MAX_Y);
-            geom.getCoordinate().y = (rnd.nextDouble() * (maxY - minY)) - maxY;
+        GeometryBuilder builder = new GeometryBuilder();
+        Object geom = builder.decode(geomStr);
+        int srid = 0;
+        if (geom instanceof Point) {
+            Point point = (Point) geom;
+            srid = point.getSrid();
+        } else if (geom instanceof PGbox2d) {
+            PGbox2d box = (PGbox2d) geom;
+            srid = box.getLLB().getSrid();
         }
-
-        geomStr = fromGeometry(geom, flags);
+        double minY, maxY;
+        if (srid != 0) {
+            ProjectedCRS crs = ProjectedCRS.resolve(srid);
+            minY = crs.getAxis("y").getMin();
+            maxY = crs.getAxis("y").getMax();
+        } else {
+            minY = -Double.MAX_VALUE;
+            maxY = Double.MAX_VALUE;
+        }
+        if (geom instanceof Point) {
+            Point point = (Point) geom;
+            if (Record.splittingType.equals("points")) {
+                Random rnd = new Random();
+                point.setY((rnd.nextDouble() * (maxY - minY)) - maxY);
+                geomStr = builder.encode(point);
+            } else if (Record.splittingType.equals("lines")) {
+                Point min = new Point(point.getX(), minY);
+                min.setSrid(srid);
+                Point max = new Point(point.getX(), maxY);
+                max.setSrid(srid);
+                LineString line = new LineString(new Point[] { min, max });
+                line.setSrid(srid);
+                geomStr = builder.encode(line);
+            }
+        } else if (geom instanceof PGbox2d) {
+            PGbox2d box = (PGbox2d) geom;
+            box.getLLB().setY(minY);
+            box.getURT().setY(maxY);
+            geomStr = builder.encode(box);
+        }
 
         return geomStr;
     }
 
     // Returns a String that has a correct Y value and a random X
     private String separateY(String geomStr) {
-        // AKKA fix: try to read geom in WKT format and then in WKB format
-        Map<String, Boolean> flags = new HashMap<>();
-        Geometry geom = toGeometry(geomStr, flags);
-
-        if (geom != null) {
-            Random rnd = new Random();
-            double minX = Double.parseDouble(Constants.MIN_X);
-            double maxX = Double.parseDouble(Constants.MAX_X);
-            geom.getCoordinate().x = (rnd.nextDouble() * (maxX - minX)) - maxX;
+        GeometryBuilder builder = new GeometryBuilder();
+        Object geom = builder.decode(geomStr);
+        int srid = 0;
+        if (geom instanceof Point) {
+            Point point = (Point) geom;
+            srid = point.getSrid();
+        } else if (geom instanceof PGbox2d) {
+            PGbox2d box = (PGbox2d) geom;
+            srid = box.getLLB().getSrid();
         }
-
-        geomStr = fromGeometry(geom, flags);
+        double minX, maxX;
+        if (srid != 0) {
+            ProjectedCRS crs = ProjectedCRS.resolve(srid);
+            minX = crs.getAxis("x").getMin();
+            maxX = crs.getAxis("x").getMax();
+        } else {
+            minX = -Double.MAX_VALUE;
+            maxX = Double.MAX_VALUE;
+        }
+        if (geom instanceof Point) {
+            Point point = (Point) geom;
+            if (Record.splittingType.equals("points")) {
+                Random rnd = new Random();
+                point.setX((rnd.nextDouble() * (maxX - minX)) - maxX);
+                geomStr = builder.encode(point);
+            } else if (Record.splittingType.equals("lines")) {
+                Point min = new Point(minX, point.getY());
+                min.setSrid(srid);
+                Point max = new Point(maxX, point.getY());
+                max.setSrid(srid);
+                LineString line = new LineString(new Point[] { min, max });
+                line.setSrid(srid);
+                geomStr = builder.encode(line);
+            }
+        } else if (geom instanceof PGbox2d) {
+            PGbox2d box = (PGbox2d) geom;
+            box.getLLB().setX(minX);
+            box.getURT().setX(maxX);
+            geomStr = builder.encode(box);
+        }
 
         return geomStr;
     }
 
     // Joins two String coordinates
     private String joinCoords(String geomStrX, String geomStrY) {
-        // AKKA fix: try to read geom in WKT format and then in WKB format
         // get coordinates for X
-        Map<String, Boolean> flagsX = null;
-        Geometry geomX = null;
+        GeometryBuilder builderX = null;
+        Object geomX = null;
         if (geomStrX != null) {
-            flagsX = new HashMap<>();
-            geomX = toGeometry(geomStrX, flagsX);
+            builderX = new GeometryBuilder();
+            geomX = builderX.decode(geomStrX);
         }
 
         // get coordinates for Y
-        Map<String, Boolean> flagsY = null;
-        Geometry geomY = null;
+        GeometryBuilder builderY = null;
+        Object geomY = null;
         if (geomStrY != null) {
-            flagsY = new HashMap<>();
-            geomY = toGeometry(geomStrY, flagsY);
+            builderY = new GeometryBuilder();
+            geomY = builderY.decode(geomStrY);
         }
 
         String geomStr;
-        if (geomX != null && geomY != null) {
-            // merge coordinates and build a new geometry
-            Coordinate coordX = geomX.getCoordinate();
-            Coordinate coordY = geomY.getCoordinate();
-            GeometryFactory builder = new GeometryFactory(new PrecisionModel(), geomX.getSRID());
-            CoordinateSequence newCoords = builder.getCoordinateSequenceFactory().create(1, 2);
-            newCoords.setOrdinate(0, 0, coordX.x);
-            newCoords.setOrdinate(0, 1, coordY.y);
-            Geometry geom = builder.createPoint(newCoords);
-            geomStr = fromGeometry(geom, flagsX);
+        if (Record.splittingType.equals("points") && geomX instanceof Point && geomY instanceof Point) {
+            // merge coordinates and build a new point
+            Point pointX = (Point) geomX;
+            Point pointY = (Point) geomY;
+            Point newPoint = new Point(pointX.getX(), pointY.getY());
+            newPoint.setSrid(pointX.getSrid());
+            geomStr = builderX.encodeGeometry(newPoint);
+        } else if (Record.splittingType.equals("lines") && geomX instanceof LineString && geomY instanceof LineString) {
+            // merge coordinates and build a new point
+            LineString lineX = (LineString) geomX;
+            LineString lineY = (LineString) geomY;
+            Point newPoint = new Point(lineX.getFirstPoint().getX(), lineY.getFirstPoint().getY());
+            newPoint.setSrid(lineX.getSrid());
+            geomStr = builderX.encodeGeometry(newPoint);
+        } else if (geomX instanceof PGbox2d && geomY instanceof PGbox2d) {
+            // merge coordinates and build a new box2d
+            PGbox2d boxX = (PGbox2d) geomX;
+            PGbox2d boxY = (PGbox2d) geomY;
+            Point newLLB = new Point(boxX.getLLB().getX(), boxY.getLLB().getY());
+            newLLB.setSrid(boxX.getLLB().getSrid());
+            Point newURT = new Point(boxX.getURT().getX(), boxY.getURT().getY());
+            newURT.setSrid(boxX.getURT().getSrid());
+            PGbox2d newPGbox2d = new PGbox2d(newLLB, newURT);
+            geomStr = builderX.encodePGboxbase(newPGbox2d);
         } else if (geomStrX != null) {
             geomStr = geomStrX;
         } else if (geomStrY != null) {
             geomStr = geomStrY;
         } else {
             geomStr = null;
-        }
-
-        return geomStr;
-    }
-
-    private Geometry toGeometry(String geomStr, Map<String, Boolean> flags) {
-        Geometry geom = null;
-        WKBReader wkbReader = new WKBReader();
-        WKTReader wktReader = new WKTReader();
-        boolean wktFormat = true;
-        boolean hasSRID = false;
-        boolean byteOrderBigEndian = true;
-
-        try {
-            int srid = 0;
-            String wkt = geomStr;
-            hasSRID = wkt.startsWith("SRID");
-            if (hasSRID) {
-                int begin = wkt.indexOf('=') + 1;
-                int end = wkt.indexOf(';', begin);
-                srid = Integer.parseInt(wkt.substring(begin, end));
-                wkt = wkt.substring(end + 1);
-            }
-            geom = wktReader.read(wkt);
-            geom.setSRID(srid);
-        } catch (ParseException e) {
-            wktFormat = false;
-            byte[] bytes = WKBReader.hexToBytes(geomStr);
-            ByteArrayInStream bin = new ByteArrayInStream(bytes);
-            ByteOrderDataInStream dis = new ByteOrderDataInStream(bin);
-            try {
-                byte byteOrderWKB = dis.readByte();
-                int byteOrder = byteOrderWKB == WKBConstants.wkbNDR ? ByteOrderValues.LITTLE_ENDIAN
-                        : ByteOrderValues.BIG_ENDIAN;
-                byteOrderBigEndian = byteOrder == ByteOrderValues.BIG_ENDIAN;
-                dis.setOrder(byteOrder);
-                int typeInt = dis.readInt();
-                hasSRID = (typeInt & 0x20000000) != 0;
-                geom = wkbReader.read(bytes);
-                hasSRID = geom.getSRID() != 0;
-            } catch (ParseException | IOException e2) {
-                e.printStackTrace();
-            }
-        }
-        flags.put("wktFormat", wktFormat);
-        flags.put("hasSRID", hasSRID);
-        flags.put("byteOrderBigEndian", byteOrderBigEndian);
-        return geom;
-    }
-
-    private String fromGeometry(Geometry geom, Map<String, Boolean> flags) {
-        String geomStr = null;
-        boolean wktFormat = flags.get("wktFormat");
-        boolean hasSRID = flags.get("hasSRID");
-        boolean byteOrderBigEndian = flags.get("byteOrderBigEndian");
-
-        if (wktFormat) {
-            WKTWriter wktWriter = new WKTWriter(2);
-            geomStr = wktWriter.write(geom);
-            if (hasSRID) {
-                geomStr = "SRID=" + geom.getSRID() + ";" + geomStr;
-            }
-        } else {
-            int byteOrder = byteOrderBigEndian ? ByteOrderValues.BIG_ENDIAN : ByteOrderValues.LITTLE_ENDIAN;
-            WKBWriter wkbWriter = new WKBWriter(2, byteOrder, hasSRID);
-            geomStr = WKBWriter.toHex(wkbWriter.write(geom));
         }
 
         return geomStr;
