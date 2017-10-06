@@ -6,7 +6,6 @@ import com.vividsolutions.jts.io.WKBWriter;
 import eu.clarussecure.dataoperations.Criteria;
 import eu.clarussecure.dataoperations.splitting.Constants;
 
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.*;
@@ -32,7 +31,9 @@ public class Cloud {
         }
     }
 
-    public String[][] get(String[] protectedAttributeNames, Criteria[] criteria, InputStream[] extraContent) {
+    public String[][] get(String[] protectedAttributeNames, Criteria[] criteria) {
+        System.out.println(Arrays.toString(attributes));
+        System.out.println(Arrays.toString(protectedAttributeNames));
         String[][] loadedData = data.clone();
         if (criteria != null && criteria.length > 0) {
             for (Criteria c : criteria) {
@@ -101,7 +102,10 @@ public class Cloud {
         data = loadedData;
     }
 
-    public void update(Criteria[] criteria, String[][] protectedContents) {
+    public void update(Criteria[] criteria, String[] protectedAttributeNames, String[][] protectedContents) {
+        Map<String, String[]> table = datasetByColumns(protectedAttributeNames, protectedContents);
+        protectedContents = datasetByRows(attributes, table);
+
         int[] indexes = null;
         if (criteria != null && criteria.length > 0) {
             for (Criteria c : criteria) {

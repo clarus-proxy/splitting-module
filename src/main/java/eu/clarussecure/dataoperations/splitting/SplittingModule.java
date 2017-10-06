@@ -1,39 +1,28 @@
 package eu.clarussecure.dataoperations.splitting;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
+import eu.clarussecure.dataoperations.*;
+import eu.clarussecure.dataoperations.geometry.GeometryBuilder;
+import eu.clarussecure.dataoperations.geometry.ProjectedCRS;
+import eu.clarussecure.dataoperations.metadataStorage.MetadataStorage;
 import org.postgis.Geometry;
 import org.postgis.LineString;
 import org.postgis.PGbox2d;
 import org.postgis.Point;
 import org.w3c.dom.Document;
 
-import eu.clarussecure.dataoperations.AttributeNamesUtilities;
-import eu.clarussecure.dataoperations.Criteria;
-import eu.clarussecure.dataoperations.DataOperation;
-import eu.clarussecure.dataoperations.DataOperationCommand;
-import eu.clarussecure.dataoperations.DataOperationResult;
-import eu.clarussecure.dataoperations.geometry.GeometryBuilder;
-import eu.clarussecure.dataoperations.geometry.ProjectedCRS;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class SplittingModule implements DataOperation {
-    // todo Testing data base
-    private List<Map<String, String>> dataBase;
-    private Map<String, SplitPoint> splitPoints;
+    // Testing data base
+    // private List<Map<String, String>> dataBase;
+    // private Map<String, SplitPoint> splitPoints;
+    private MetadataStorage storage = MetadataStorage.getInstance();
+    //Todo: temporary
+    private String dataID = "meuse";
 
     public SplittingModule(Document document) {
         Functions.readProperties(document);
@@ -80,9 +69,9 @@ public class SplittingModule implements DataOperation {
             }
         }
 
-        // TODO: Save DB
-        this.dataBase = mapping;
-        this.splitPoints = points;
+        // Save DB
+        dataID = Record.refListNames.get(0).split("/")[0];
+        storage.storeMetadata(dataID, mapping, points);
     }
 
     @Override
@@ -91,9 +80,9 @@ public class SplittingModule implements DataOperation {
         // attributes
         Functions.reOrderListsAccordingAttributeParameter(attributeNames);
 
-        // todo Testing load data base
-        List<Map<String, String>> loadedDataBase = dataBase;
-        Map<String, SplitPoint> points = splitPoints;
+        // Load database
+        List<Map<String, String>> loadedDataBase = storage.retrieveMetadata(dataID);
+        Map<String, SplitPoint> points = storage.retrieveSplitPoints(dataID);
 
         if (criterias != null && criterias.length > 0) {
             if (criterias[0].getOperator().equals(Constants.kriging)) {
@@ -291,9 +280,9 @@ public class SplittingModule implements DataOperation {
         // attributes
         Functions.reOrderListsAccordingAttributeParameter(attributeNames);
 
-        // TODO: Load data base
-        List<Map<String, String>> loadedDataBase = dataBase;
-        Map<String, SplitPoint> loadedSplitPoints = splitPoints;
+        // Load database
+        List<Map<String, String>> loadedDataBase = storage.retrieveMetadata(dataID);
+        Map<String, SplitPoint> loadedSplitPoints = storage.retrieveSplitPoints(dataID);
 
         // AKKA fix: database initialized at boot time
         int clouds = loadedDataBase.size();
@@ -378,21 +367,13 @@ public class SplittingModule implements DataOperation {
 
     @Override
     public List<DataOperationCommand> put(String[] attributeNames, Criteria[] criterias, String[][] content) {
-        // TODO: IMPORTANT -> ONLY WORKS FINE FOR UPDATES REFERENCING DATA BY
-        // PRIMARY KEY
-        // TODO: FOR NOW PLEASE DO A GET BEFORE PUT TO KNOW THE PRIMARY KEYS TO
-        // UPDATE,
-        // TODO: OTHERWISE, ONLY THE CLOUD THAT CONTAINS THE SPECIFIC COLUMN
-        // WILL BE UPDATED
-        // TODO: TO SOLVE THIS, PUT SHOULD ALSO BE ORCHESTRATED
-
         // AKKA fix: reorder policy definition according to the request
         // attributes
         Functions.reOrderListsAccordingAttributeParameter(attributeNames);
 
-        // todo Testing load data base
-        List<Map<String, String>> loadedDataBase = dataBase;
-        Map<String, SplitPoint> points = splitPoints;
+        // Load database
+        List<Map<String, String>> loadedDataBase = storage.retrieveMetadata(dataID);
+        Map<String, SplitPoint> points = storage.retrieveSplitPoints(dataID);
 
         List<DataOperationCommand> commands = new ArrayList<>();
         int clouds = loadedDataBase.size();
@@ -513,21 +494,13 @@ public class SplittingModule implements DataOperation {
 
     @Override
     public List<DataOperationCommand> delete(String[] attributeNames, Criteria[] criterias) {
-        // TODO: IMPORTANT -> ONLY WORKS FINE FOR DELETES REFERENCING DATA BY
-        // PRIMARY KEY
-        // TODO: FOR NOW PLEASE DO A GET BEFORE DELETE TO KNOW THE PRIMARY KEYS
-        // TO DELETE,
-        // TODO: OTHERWISE, ONLY THE CLOUD THAT CONTAINS THE SPECIFIC COLUMN
-        // WILL BE DELETED
-        // TODO: TO SOLVE THIS, DELETE SHOULD ALSO BE ORCHESTRATED
-
         // AKKA fix: reorder policy definition according to the request
         // attributes
         Functions.reOrderListsAccordingAttributeParameter(attributeNames);
 
-        // todo Testing load data base
-        List<Map<String, String>> loadedDataBase = dataBase;
-        Map<String, SplitPoint> points = splitPoints;
+        // Load database
+        List<Map<String, String>> loadedDataBase = storage.retrieveMetadata(dataID);
+        Map<String, SplitPoint> points = storage.retrieveSplitPoints(dataID);
 
         List<DataOperationCommand> commands = new ArrayList<>();
         int clouds = loadedDataBase.size();
@@ -632,8 +605,13 @@ public class SplittingModule implements DataOperation {
         // AKKA fix: not so simple... we need the head function returns the
         // mapping for the input attribute names
         // Create mapping for each CSP
+
+        // Load database
+        List<Map<String, String>> loadedDataBase = storage.retrieveMetadata(dataID);
+        Map<String, SplitPoint> points = storage.retrieveSplitPoints(dataID);
+
         List<Map<String, String>> result = Stream.<Map<String, String>>generate(() -> new HashMap<>())
-                .limit(dataBase.size()).collect(Collectors.toList());
+                .limit(loadedDataBase.size()).collect(Collectors.toList());
         // resolve the fully qualified attribute names (replace any asterisk by
         // the matching attribute)
         String[] fqAttributeNames = AttributeNamesUtilities.resolveOperationAttributeNames(strings,
@@ -646,10 +624,10 @@ public class SplittingModule implements DataOperation {
                     .mapToObj(i -> Record.refListNames.get(i)).findFirst().orElse(null);
             if (refAttributeName != null) {
                 // save mapping for each involved CSP
-                for (int csp = 0; csp < dataBase.size(); csp++) {
+                for (int csp = 0; csp < loadedDataBase.size(); csp++) {
                     Map<String, String> mapping = result.get(csp);
                     // get the protected attribute name
-                    String protectedAttributeName = dataBase.get(csp).get(refAttributeName);
+                    String protectedAttributeName = loadedDataBase.get(csp).get(refAttributeName);
                     if (protectedAttributeName != null) {
                         // remove asterisks in the protected attribute name
                         protectedAttributeName = AttributeNamesUtilities
@@ -662,12 +640,10 @@ public class SplittingModule implements DataOperation {
         return result;
     }
 
-    // TODO: Temp method for testing
-    // ------------------------------------------------------------------------------
     private List<DataOperationCommand> krigingFirst(String attributeName, String geoAttributeName, String point) {
-        // todo Testing load data base
-        List<Map<String, String>> loadedDataBase = dataBase;
-        Map<String, SplitPoint> points = splitPoints;
+        // Load database
+        List<Map<String, String>> loadedDataBase = storage.retrieveMetadata(dataID);
+        Map<String, SplitPoint> points = storage.retrieveSplitPoints(dataID);
 
         int clouds = loadedDataBase.size();
         List<DataOperationCommand> commands = new ArrayList<>();
@@ -675,12 +651,13 @@ public class SplittingModule implements DataOperation {
             commands.add(null);
         }
 
+        System.out.println(points.keySet().toString());
+
         // Bring in the X coordinate
         // where is X coordinate?
         int x = points.get(geoAttributeName).getX();
         // what's its name?
         String xAttributeName = loadedDataBase.get(x).get(geoAttributeName);
-
         KrigingModuleCommand kmc = new KrigingModuleCommand(new String[] { geoAttributeName },
                 new String[] { xAttributeName }, loadedDataBase.get(x), points, attributeName, geoAttributeName, point);
 
@@ -723,9 +700,9 @@ public class SplittingModule implements DataOperation {
     }
 
     private List<DataOperationResult> kriging(List<DataOperationCommand> commands, List<String[][]> contents) {
-        // todo Testing load data base
-        List<Map<String, String>> loadedDataBase = dataBase;
-        Map<String, SplitPoint> points = splitPoints;
+        // Load database
+        List<Map<String, String>> loadedDataBase = storage.retrieveMetadata(dataID);
+        Map<String, SplitPoint> points = storage.retrieveSplitPoints(dataID);
 
         int clouds = loadedDataBase.size();
         List<DataOperationResult> results = new ArrayList<>();
@@ -784,8 +761,6 @@ public class SplittingModule implements DataOperation {
 
         return results;
     }
-    // TODO: End temp method for testing
-    // --------------------------------------------------------------------------
 
     private List<String[][]> filterContentsByPrimaryKey(String keyAttribute, List<DataOperationCommand> promise,
             List<String[][]> contents) {
@@ -945,7 +920,8 @@ public class SplittingModule implements DataOperation {
         double minX, maxX, minY, maxY;
         int srid = Integer.parseInt(area[4].trim());
         if (srid != 0) {
-            ProjectedCRS crs = ProjectedCRS.resolve(srid);
+            //TODO 3857 -> srid
+            ProjectedCRS crs = ProjectedCRS.resolve(3857);
             minX = crs.getAxis("x").getMin();
             maxX = crs.getAxis("x").getMax();
             minY = crs.getAxis("y").getMin();
@@ -1075,7 +1051,8 @@ public class SplittingModule implements DataOperation {
         }
         double minY, maxY;
         if (srid != 0) {
-            ProjectedCRS crs = ProjectedCRS.resolve(srid);
+            //TODO 3857 -> srid
+            ProjectedCRS crs = ProjectedCRS.resolve(3857);
             minY = crs.getAxis("y").getMin();
             maxY = crs.getAxis("y").getMax();
         } else {
@@ -1121,7 +1098,8 @@ public class SplittingModule implements DataOperation {
         }
         double minX, maxX;
         if (srid != 0) {
-            ProjectedCRS crs = ProjectedCRS.resolve(srid);
+            //TODO 3857 -> srid
+            ProjectedCRS crs = ProjectedCRS.resolve(3857);
             minX = crs.getAxis("x").getMin();
             maxX = crs.getAxis("x").getMax();
         } else {
@@ -1209,6 +1187,6 @@ public class SplittingModule implements DataOperation {
 
     private String buildProtectedAttributeName(String attributeName, int cloud) {
         // AKKA fix: preserve first part
-        return "csp" + (cloud + 1) + "/" + attributeName;
+        return /*"csp" + (cloud + 1) + "/" +*/ attributeName;
     }
 }

@@ -6,12 +6,13 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import com.vividsolutions.jts.io.WKBWriter;
 import eu.clarussecure.dataoperations.*;
-import eu.clarussecure.dataoperations.splitting.*;
+import eu.clarussecure.dataoperations.splitting.Constants;
+import eu.clarussecure.dataoperations.splitting.Functions;
+import eu.clarussecure.dataoperations.splitting.SplittingModule;
 import org.w3c.dom.Document;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +53,7 @@ public class Demo {
                 "Ag", "300.000000000000000", "0101000020E61000000000000040190641000000009C531441" } };
         commands = splittingModule.post(attributes, append);
 
+
         // Update database
         for (int i = 0; i < commands.size(); i++) {
             clouds.get(i).post(commands.get(i).getProtectedAttributeNames(), commands.get(i).getProtectedContents());
@@ -81,7 +83,7 @@ public class Demo {
         // Retrieve an area from splitting example
 
         Criteria criteria = new Criteria("meuseDB/meuse/geom", eu.clarussecure.dataoperations.splitting.Constants.area,
-                "180199,331700,180700,332570");
+                "180199,331700,180700,332570,3857");
         Criteria[] criterias = new Criteria[1];
         criterias[0] = criteria;
 
@@ -165,7 +167,6 @@ public class Demo {
         updateInClouds(clouds, commands);
 
         // Retrieve updated record by GID
-
         criteria = new Criteria("meuseDB/meuse/gid", "=", "500");
         criterias = new Criteria[1];
         criterias[0] = criteria;
@@ -184,12 +185,11 @@ public class Demo {
         // cleanup clouds
         clouds = new ArrayList<>();
 
-        // load new dataset
-        attributes = new String[3];
-        attributes[0] = "meuseDB/meuse/gid";
-        attributes[1] = "meuseDB/meuse/zinc";
-        attributes[2] = "meuseDB/meuse/geom";
-        dataOri = loadData();
+        // Load data at client application
+        file = new File("./datasets/kriging.txt");
+        datasetParser = new DatasetParser(file, ",");
+        attributes = datasetParser.parseHeaders();
+        dataOri = datasetParser.parseDataset();
 
         // instance new splitting module
         xmlProperties = loadXmlFile("./datasets/propertiesKriging.xml");
@@ -218,8 +218,7 @@ public class Demo {
         criterias[0] = criteria;
 
         // Orchestrated Kriging
-        // commands = splittingModule.get(attributes, criterias);
-        commands = splittingModule.get(null, criterias);
+        commands = splittingModule.get(attributes, criterias);
         contents = queryClouds(clouds, commands);
         results = splittingModule.get(commands, contents);
         while (true) {
@@ -242,9 +241,7 @@ public class Demo {
             } else {
                 String[] protectedAttributeNames = commands.get(i).getProtectedAttributeNames();
                 Criteria[] criteria = commands.get(i).getCriteria();
-                InputStream[] extraBinaryContent = commands.get(i).getExtraBinaryContent();
-                String[] extraProtectedAttributeNames = commands.get(i).getExtraProtectedAttributeNames();
-                contents.add(clouds.get(i).get(protectedAttributeNames, criteria, extraBinaryContent));
+                contents.add(clouds.get(i).get(protectedAttributeNames, criteria));
             }
         }
         return contents;
@@ -258,7 +255,7 @@ public class Demo {
 
     private static void updateInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
         for (int i = 0; i < commands.size(); i++) {
-            clouds.get(i).update(commands.get(i).getCriteria(), commands.get(i).getProtectedContents());
+            clouds.get(i).update(commands.get(i).getCriteria(), commands.get(i).getProtectedAttributeNames(), commands.get(i).getProtectedContents());
         }
     }
 
@@ -304,7 +301,7 @@ public class Demo {
     private static String[][] loadData() {
         String data[][];
         PrecisionModel pmodel = new PrecisionModel();
-        GeometryFactory builder = new GeometryFactory(pmodel, 4326);
+        GeometryFactory builder = new GeometryFactory(pmodel, 3857);
         WKBWriter writer = new WKBWriter(2, 2, true);
         Geometry geom;
         Coordinate newCoord;
