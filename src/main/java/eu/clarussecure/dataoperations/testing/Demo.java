@@ -53,7 +53,6 @@ public class Demo {
                 "Ag", "300.000000000000000", "0101000020E61000000000000040190641000000009C531441" } };
         commands = splittingModule.post(attributes, append);
 
-
         // Update database
         for (int i = 0; i < commands.size(); i++) {
             clouds.get(i).post(commands.get(i).getProtectedAttributeNames(), commands.get(i).getProtectedContents());
@@ -255,7 +254,8 @@ public class Demo {
 
     private static void updateInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
         for (int i = 0; i < commands.size(); i++) {
-            clouds.get(i).update(commands.get(i).getCriteria(), commands.get(i).getProtectedAttributeNames(), commands.get(i).getProtectedContents());
+            clouds.get(i).update(commands.get(i).getCriteria(), commands.get(i).getProtectedAttributeNames(),
+                    commands.get(i).getProtectedContents());
         }
     }
 
