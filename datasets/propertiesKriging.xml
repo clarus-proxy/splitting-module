@@ -5,8 +5,13 @@
             attribute_separator=","
             record_separator=";">
         <attribute
+                name="meuseDB/meuse/gid"
+                attribute_type="technical_identifier"
+                data_type="numeric_continuous">
+        </attribute>
+        <attribute
                 name="meuseDB/meuse/zinc"
-                attribute_type="confidential"
+                attribute_type="non_confidential"
                 data_type="numeric_continuous">
         </attribute>
         <attribute
@@ -19,10 +24,14 @@
             module="splitting">
         <attribute_types>
             <attribute_type
+                type="technical_identifier"
+                protection="replicate"
+                clouds="2"/>
+            <attribute_type
                     type="identifier"
                     protection="splitting"
-                    clouds="2">
-            </attribute_type>
+                    splitting_type="points"
+                    clouds="2"/>
             <attribute_type
                     type="confidential"
                     protection="encryption"

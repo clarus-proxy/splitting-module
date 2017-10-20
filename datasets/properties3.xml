@@ -6,8 +6,8 @@
 		record_separator=";">
 		<attribute
 			name="meuseDB/meuse/gid"
-			attribute_type="non_confidential"
-			data_type="numeric_discrete">
+			attribute_type="technical_identifier"
+			data_type="numeric_continuous">
 		</attribute>
 		<attribute
 			name="meuseDB/meuse/cadmium"
@@ -78,10 +78,15 @@
 	<protection
 		module="splitting">
 		<attribute_types>
+            <attribute_type
+				type="technical_identifier"
+				protection="replicate"
+				clouds="2"/>
 			<attribute_type
 				type="identifier"
 				protection="splitting"
-				clouds="2">
+				clouds="2"
+				splitting_type="points">
 			</attribute_type>
 			<attribute_type
 				type="confidential"

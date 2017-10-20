@@ -7,12 +7,12 @@ public class KrigingResult {
     double ZEstimation;
     double kriegageVvariance;
 
-    public KrigingResult(double zEstimation, double kriegageVvariance){
+    public KrigingResult(double zEstimation, double kriegageVvariance) {
         this.ZEstimation = zEstimation;
         this.kriegageVvariance = kriegageVvariance;
     }
 
-    public String toString(){
+    public String toString() {
         String s;
 
         s = "Z estimation: " + this.ZEstimation + "\n";
