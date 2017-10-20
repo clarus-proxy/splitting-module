@@ -1,9 +1,14 @@
 package eu.clarussecure.dataoperations.splitting;
 
+import java.io.Serializable;
+
 /**
  * Created by Alberto Blanco on 28/04/2017.
  */
-public class SplitPoint {
+public class SplitPoint implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     private int x;
     private int y;
 
