@@ -17,6 +17,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class SplittingModule implements DataOperation {
+
     // Testing data base
     // private List<Map<String, String>> dataBase;
     // private Map<String, SplitPoint> splitPoints;
@@ -263,7 +264,6 @@ public class SplittingModule implements DataOperation {
         }
 
         // TODO: decrypt needed columns
-
         // Transform table of named columns to table of rows
         String[][] datasetByRows = datasetByRows(attributeNames, table);
 
@@ -276,6 +276,13 @@ public class SplittingModule implements DataOperation {
 
     @Override
     public List<DataOperationCommand> post(String[] attributeNames, String[][] content) {
+        if (Util.isNullOrContainsNullString(attributeNames)) {
+            throw new RuntimeException("Attribute names null");
+        }
+        if (Util.isNullOrContainsNullString(content)) {
+            throw new RuntimeException("Content null");
+        }
+
         // AKKA fix: reorder policy definition according to the request
         // attributes
         Functions.reOrderListsAccordingAttributeParameter(attributeNames);
@@ -290,26 +297,20 @@ public class SplittingModule implements DataOperation {
         // Transform table of rows to table of named columns
         Map<String, String[]> dataset = datasetByColumns(attributeNames, content);
 
-        // List of commands to return
-        List<DataOperationCommand> commands = new ArrayList<>();
-        // Split dataset
-        List<Map<String, String[]>> splitDataset;
-        // AKKA fix: we need to split dataset header as well
-        List<Map<String, String>> datasetHeaders;
-        Map<String, SplitPoint> datasetHeaderSplitPoints = new HashMap<>();
-
         // AKKA fix: database initialized at boot time
         // New data on existing database
-
         // Initialize split dataset
-        splitDataset = new ArrayList<>();
+        List<Map<String, String[]>> splitDataset = new ArrayList<>();
         // AKKA fix: Initialize split dataset header
-        datasetHeaders = new ArrayList<>();
+        List<Map<String, String>> datasetHeaders = new ArrayList<>();
         for (int i = 0; i < clouds; i++) {
             splitDataset.add(new LinkedHashMap<>());
             // AKKA fix: Initialize split dataset header
             datasetHeaders.add(new LinkedHashMap<>());
         }
+
+        // AKKA fix: we need to split dataset header as well
+        Map<String, SplitPoint> datasetHeaderSplitPoints = new HashMap<>();
 
         // Fill in split dataset
         // AKKA fix: rely on Record to split data
@@ -352,14 +353,27 @@ public class SplittingModule implements DataOperation {
             }
         }
 
+        // List of commands to return
+        List<DataOperationCommand> commands = new ArrayList<>();
+
         // Build post Commands
         // AKKA fix: rely on Record to split data
         for (int i = 0; i < clouds; i++) {
             Map<String, String> mapping = datasetHeaders.get(i);
+            if (Util.isNullOrContainsNullString(mapping)) {
+                throw new RuntimeException("Mapping is null");
+            }
             String[] protectedAttributeNames = mapping.values().toArray(new String[mapping.size()]);
             String[][] protectedContent = datasetByRows(protectedAttributeNames, splitDataset.get(i));
-            commands.add(new SplitModuleCommand(attributeNames, protectedAttributeNames, mapping,
-                    datasetHeaderSplitPoints, content, protectedContent));
+
+            if (Util.isNullOrContainsNullString(content)) {
+                throw new RuntimeException("Content is null");
+            }
+
+            SplitModuleCommand c = new SplitModuleCommand(attributeNames, protectedAttributeNames, mapping,
+                    datasetHeaderSplitPoints, content, protectedContent);
+
+            commands.add(c);
         }
 
         return commands;
@@ -393,7 +407,6 @@ public class SplittingModule implements DataOperation {
         }
 
         // AKKA fix: postpone processing criteria (see below)
-
         // AKKA fix: rely on Record to split data
         for (int i = 0; i < Record.numAttr; i++) {
             String attributeName = attributeNames[i];
@@ -513,7 +526,6 @@ public class SplittingModule implements DataOperation {
         }
 
         // AKKA fix: postpone processing criteria (see below)
-
         // AKKA fix: rely on Record to delete data
         for (int i = 0; i < Record.numAttr; i++) {
             String attributeName = attributeNames[i];
@@ -658,8 +670,8 @@ public class SplittingModule implements DataOperation {
         int x = points.get(geoAttributeName).getX();
         // what's its name?
         String xAttributeName = loadedDataBase.get(x).get(geoAttributeName);
-        KrigingModuleCommand kmc = new KrigingModuleCommand(new String[] { geoAttributeName },
-                new String[] { xAttributeName }, loadedDataBase.get(x), points, attributeName, geoAttributeName, point);
+        KrigingModuleCommand kmc = new KrigingModuleCommand(new String[]{geoAttributeName},
+                new String[]{xAttributeName}, loadedDataBase.get(x), points, attributeName, geoAttributeName, point);
 
         commands.set(x, kmc);
 
@@ -668,7 +680,7 @@ public class SplittingModule implements DataOperation {
         int y = points.get(geoAttributeName).getY();
         // what's its name
         String yAttributeName = loadedDataBase.get(y).get(geoAttributeName);
-        kmc = new KrigingModuleCommand(new String[] { geoAttributeName }, new String[] { yAttributeName },
+        kmc = new KrigingModuleCommand(new String[]{geoAttributeName}, new String[]{yAttributeName},
                 loadedDataBase.get(y), points, attributeName, geoAttributeName, point);
 
         commands.set(y, kmc);
@@ -692,8 +704,8 @@ public class SplittingModule implements DataOperation {
             ((KrigingModuleCommand) commands.get(y)).addAttributeName(attributeName);
             ((KrigingModuleCommand) commands.get(y)).addProtectedAttributeName(measureAttributeName);
         } else {
-            commands.set(measureCloud, new SplitModuleCommand(new String[] { attributeName },
-                    new String[] { measureAttributeName }, loadedDataBase.get(measureCloud), points, null, null));
+            commands.set(measureCloud, new SplitModuleCommand(new String[]{attributeName},
+                    new String[]{measureAttributeName}, loadedDataBase.get(measureCloud), points, null, null));
         }
 
         return commands;
@@ -728,35 +740,35 @@ public class SplittingModule implements DataOperation {
         int y = points.get(kmc.getGeomAttribute()).getY();
 
         switch (kmc.getStep()) {
-        case 1:
-            kmc.nextStep();
-            kmc.setxCoordinate(transpose(contents.get(x))[0]);
-            kmc.setyCoordinate(transpose(contents.get(y))[0]);
-            for (int i = 0; i < commands.size(); i++) {
-                if (commands.get(i) != null && commands.get(i).getMapping().containsKey(kmc.getMeasure())) {
-                    String[][] content = transpose(contents.get(i));
-                    kmc.setMeasureContents(content[content.length - 1]);
+            case 1:
+                kmc.nextStep();
+                kmc.setxCoordinate(transpose(contents.get(x))[0]);
+                kmc.setyCoordinate(transpose(contents.get(y))[0]);
+                for (int i = 0; i < commands.size(); i++) {
+                    if (commands.get(i) != null && commands.get(i).getMapping().containsKey(kmc.getMeasure())) {
+                        String[][] content = transpose(contents.get(i));
+                        kmc.setMeasureContents(content[content.length - 1]);
+                    }
                 }
-            }
-            kmc.setProtectedAttributeNames(new String[] {
-                    Constants.krigingCalculateX + "(" + loadedDataBase.get(x).get(kmc.getGeomAttribute()) + ")" });
-            results.set(x, kmc);
-            break;
-        case 2:
-            kmc.nextStep();
-            String[] calculateX = transpose(contents.get(x))[0];
-            kmc.setProtectedAttributeNames(
-                    new String[] { Constants.krigingCalculateY + "(" + loadedDataBase.get(y).get(kmc.getGeomAttribute())
-                            + ", {" + String.join(",", calculateX) + "})" });
-            results.set(y, kmc);
-            break;
-        case 3:
-            String[] calculatedOnCloud = transpose(contents.get(y))[0];
-            kmc.setCalculatedOnCloud(calculatedOnCloud);
-            String[][] k = kmc.calculateKriging();
-            results = new ArrayList<>();
-            results.add(new KrigingModuleResponse(new String[] { "value", "variance" }, k));
-            break;
+                kmc.setProtectedAttributeNames(new String[]{
+                    Constants.krigingCalculateX + "(" + loadedDataBase.get(x).get(kmc.getGeomAttribute()) + ")"});
+                results.set(x, kmc);
+                break;
+            case 2:
+                kmc.nextStep();
+                String[] calculateX = transpose(contents.get(x))[0];
+                kmc.setProtectedAttributeNames(
+                        new String[]{Constants.krigingCalculateY + "(" + loadedDataBase.get(y).get(kmc.getGeomAttribute())
+                            + ", {" + String.join(",", calculateX) + "})"});
+                results.set(y, kmc);
+                break;
+            case 3:
+                String[] calculatedOnCloud = transpose(contents.get(y))[0];
+                kmc.setCalculatedOnCloud(calculatedOnCloud);
+                String[][] k = kmc.calculateKriging();
+                results = new ArrayList<>();
+                results.add(new KrigingModuleResponse(new String[]{"value", "variance"}, k));
+                break;
         }
 
         return results;
@@ -786,8 +798,9 @@ public class SplittingModule implements DataOperation {
                 s -> indexedTables.stream().map(m -> m.containsKey(s)).reduce(true, (a, b) -> a && b)));
         for (Map<String, String[]> m : indexedTables) {
             for (String id : inAll.keySet()) {
-                if (!inAll.get(id))
+                if (!inAll.get(id)) {
                     m.remove(id);
+                }
             }
         }
 
@@ -829,31 +842,31 @@ public class SplittingModule implements DataOperation {
 
     private Predicate<String[]> getPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-        case "=":
-            return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
-        case ">":
-            return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
-        case ">=":
-            return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
-        case "<":
-            return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
-        case "<=":
-            return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
-        case Constants.area:
-            return p -> {
-                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
-                return inArea(p[pos], boundaries);
-            };
-        case Constants.in:
-            return p -> {
-                String[] listOfValues = c.getValue().split(",");
-                List<String> listOfStrings = Arrays.asList(listOfValues);
-                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
-                        .collect(Collectors.toList());
-                return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
-            };
-        default:
-            return p -> true;
+            case "=":
+                return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
+            case ">":
+                return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
+            case ">=":
+                return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
+            case "<":
+                return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
+            case "<=":
+                return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
+            case Constants.area:
+                return p -> {
+                    double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                    return inArea(p[pos], boundaries);
+                };
+            case Constants.in:
+                return p -> {
+                    String[] listOfValues = c.getValue().split(",");
+                    List<String> listOfStrings = Arrays.asList(listOfValues);
+                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                            .collect(Collectors.toList());
+                    return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
+                };
+            default:
+                return p -> true;
         }
     }
 
@@ -932,13 +945,13 @@ public class SplittingModule implements DataOperation {
             minY = -Double.MAX_VALUE;
             maxY = Double.MAX_VALUE;
         }
-        String[] areaX = { area[0], Double.toString(minY), area[2], Double.toString(maxY), Integer.toString(srid) };
+        String[] areaX = {area[0], Double.toString(minY), area[2], Double.toString(maxY), Integer.toString(srid)};
         criterias.get(x).setAttributeName(loadedDataBase.get(x).get(criteria.getAttributeName()));
         criterias.get(x).setOperator(criteria.getOperator());
         criterias.get(x).setValue(String.join(",", areaX));
 
         // AKKA fix: don't forget SRID
-        String[] areaY = { Double.toString(minX), area[1], Double.toString(maxX), area[3], Integer.toString(srid) };
+        String[] areaY = {Double.toString(minX), area[1], Double.toString(maxX), area[3], Integer.toString(srid)};
         criterias.get(y).setAttributeName(loadedDataBase.get(y).get(criteria.getAttributeName()));
         criterias.get(y).setOperator(criteria.getOperator());
         criterias.get(y).setValue(String.join(",", areaY));
@@ -986,7 +999,8 @@ public class SplittingModule implements DataOperation {
                 byte[] enc = SymmetricCrypto.encrypt(column[i].getBytes("UTF-8"), "KEY?");
                 encryptedColumn[i] = encoder.encodeToString(enc);
             } catch (Exception e) {
-                /* Sorry */}
+                /* Sorry */
+            }
         }
         return encryptedColumn;
     }
@@ -999,19 +1013,20 @@ public class SplittingModule implements DataOperation {
                 byte[] dec = SymmetricCrypto.decrypt(decoder.decode(column[i]), "KEY?");
                 decryptedColumn[i] = new String(dec, "UTF-8");
             } catch (Exception e) {
-                /* Sorry */}
+                /* Sorry */
+            }
         }
         return decryptedColumn;
     }
 
     private String[] splitGeomColumn(String[] column, String coordinate) {
         switch (coordinate) {
-        case "x":
-            return Arrays.stream(column).map(this::separateX).toArray(String[]::new);
-        case "y":
-            return Arrays.stream(column).map(this::separateY).toArray(String[]::new);
-        default:
-            return null;
+            case "x":
+                return Arrays.stream(column).map(this::separateX).toArray(String[]::new);
+            case "y":
+                return Arrays.stream(column).map(this::separateY).toArray(String[]::new);
+            default:
+                return null;
         }
     }
 
@@ -1070,7 +1085,7 @@ public class SplittingModule implements DataOperation {
                 min.setSrid(srid);
                 Point max = new Point(point.getX(), maxY);
                 max.setSrid(srid);
-                LineString line = new LineString(new Point[] { min, max });
+                LineString line = new LineString(new Point[]{min, max});
                 line.setSrid(srid);
                 geomStr = builder.encode(line);
             }
@@ -1117,7 +1132,7 @@ public class SplittingModule implements DataOperation {
                 min.setSrid(srid);
                 Point max = new Point(maxX, point.getY());
                 max.setSrid(srid);
-                LineString line = new LineString(new Point[] { min, max });
+                LineString line = new LineString(new Point[]{min, max});
                 line.setSrid(srid);
                 geomStr = builder.encode(line);
             }

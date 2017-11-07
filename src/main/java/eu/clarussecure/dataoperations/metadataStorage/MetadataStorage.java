@@ -67,7 +67,8 @@ public class MetadataStorage {
         doc.append("metadata", objectToString(metadata));
         doc.append("splitPoints", objectToString(splitPoints));
 
-        boolean ack = this.dbCollection.replaceOne(eq("dataID", dataID), doc, new UpdateOptions().upsert(true)).wasAcknowledged();
+        boolean ack = this.dbCollection.replaceOne(eq("dataID", dataID), doc, new UpdateOptions().upsert(true))
+                .wasAcknowledged();
     }
 
     public List<Map<String, String>> retrieveMetadata(String dataID) {
@@ -126,7 +127,7 @@ public class MetadataStorage {
 
     private Object stringToObject(String b) {
         ByteArrayInputStream bais = new ByteArrayInputStream(Base64.getDecoder().decode(b));
-        ObjectInput oi =  null;
+        ObjectInput oi = null;
         Object o = null;
         try {
             oi = new ObjectInputStream(bais);

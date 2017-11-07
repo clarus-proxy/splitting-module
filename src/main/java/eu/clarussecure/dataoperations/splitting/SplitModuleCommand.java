@@ -16,6 +16,24 @@ public class SplitModuleCommand extends DataOperationCommand {
 
     public SplitModuleCommand(String[] attributeNames, String[] protectedAttributeNames, Map<String, String> mapping,
             Map<String, SplitPoint> splitPoints, String[][] contents, String[][] protectedContents) {
+
+        if (Util.isNullOrContainsNullString(attributeNames)) {
+            throw new RuntimeException("Trying to create split module command with null value: attributeNames");
+        }
+        if (Util.isNullOrContainsNullString(protectedAttributeNames)) {
+            throw new RuntimeException("Trying to create split module command with null value: protectedAttributeNames");
+        }
+        if (Util.isNullOrContainsNullString(mapping)) {
+            throw new RuntimeException("Trying to create split module command with null value: mapping");
+        }
+
+        // This is ok to be null obviously
+        //        if (Util.isNullOrContainsNullString(contents)) {
+        //            throw new RuntimeException("Trying to create split module command with null value: contents");
+        //        }
+        //        if (Util.isNullOrContainsNullString(protectedContents)) {
+        //            throw new RuntimeException("Trying to create split module command with null value: protectedContents");
+        //        }
         super.id = new Random().nextInt();
         super.attributeNames = attributeNames;
         super.protectedAttributeNames = protectedAttributeNames;
@@ -31,6 +49,7 @@ public class SplitModuleCommand extends DataOperationCommand {
         return splitPoints;
     }
 
+    @Override
     public void setCriteria(Criteria criteria[]) {
         super.criteria = criteria;
     }
@@ -42,5 +61,4 @@ public class SplitModuleCommand extends DataOperationCommand {
     public Criteria[] getOriginalCriteria() {
         return this.originalCriteria;
     }
-
 }

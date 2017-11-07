@@ -5,6 +5,7 @@ import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
 import eu.clarussecure.dataoperations.Criteria;
 import eu.clarussecure.dataoperations.splitting.Constants;
+import eu.clarussecure.dataoperations.splitting.Util;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -13,27 +14,32 @@ import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.log4j.Logger;
 
 public class Cloud {
 
+    private final static Logger LOG = Logger.getLogger(Cloud.class);
+
     private String[][] data;
-    private String[] attributes;
+    private final String[] attributes;
 
     public Cloud(String[] attrs, String[][] data) {
         this.data = data;
         this.attributes = attrs;
     }
 
-    public void printContents() {
-        System.out.println(String.join(", ", attributes));
+    @Override
+    public String toString() {
+        String result = String.join(", ", attributes);
         for (String[] row : data) {
-            System.out.println(String.join(", ", row));
+            result += String.join(", ", row);
         }
+        return result;
     }
 
     public String[][] get(String[] protectedAttributeNames, Criteria[] criteria) {
-        System.out.println(Arrays.toString(attributes));
-        System.out.println(Arrays.toString(protectedAttributeNames));
+        LOG.info(Arrays.toString(attributes));
+        LOG.info(Arrays.toString(protectedAttributeNames));
         String[][] loadedData = data.clone();
         if (criteria != null && criteria.length > 0) {
             for (Criteria c : criteria) {
@@ -54,35 +60,84 @@ public class Cloud {
             if (a.contains(Constants.krigingCalculateX)) {
                 String geomAttr = a.split("(\\(|\\))")[1];
                 String[] calculateX = calculateX(geomAttr);
+                if (calculateX == null) {
+                    throw new RuntimeException("Calculate X is null");
+                }
+                LOG.info("Inserting into table: " + a + " -> " + calculateX);
                 table.put(a, calculateX);
             } else if (a.contains(Constants.krigingCalculateY)) {
                 String[] parameters = a.split("(\\(|\\))")[1].split(",\\s*\\{");
                 String geomAttr = parameters[0];
                 String[] calculateX = parameters[1].substring(0, parameters[1].length() - 1).split(",");
-                table.put(a, calculateY(geomAttr, calculateX));
+                String[] calculateY = calculateY(geomAttr, calculateX);
+                if (calculateY == null) {
+                    throw new RuntimeException("Calculate X is null");
+                }
+                LOG.info("Inserting into table: " + a + " -> " + calculateY);
+                table.put(a, calculateY);
             }
         }
 
-        /*
-         * if (extraContent != null && extraContent.length > 0) { BufferedReader
-         * in = new BufferedReader(new InputStreamReader(extraContent[0]));
-         * String instruction = null; try { instruction = in.readLine(); } catch
-         * (IOException e) { e.printStackTrace(); } switch (instruction) { case
-         * Constants.krigingCalculateX: String attribute = null; try { attribute
-         * = in.readLine(); } catch (IOException e) { e.printStackTrace(); }
-         * String[] calculateX = this.calculateX(attribute);
-         * table.put(protectedAttributeNames[0], calculateX); break; case
-         * Constants.krigingCalculateY: attribute = null; calculateX = null; try
-         * { attribute = in.readLine(); calculateX = in.readLine().split(":"); }
-         * catch (IOException e) { e.printStackTrace(); } String[] calculateY =
-         * this.calculateY(attribute, calculateX);
-         * table.put(protectedAttributeNames[0], calculateY); break; default:
-         * break; } }
-         */
+//        if (extraContent != null && extraContent.length > 0) {
+//            BufferedReader in = new BufferedReader(new InputStreamReader(extraContent[0]));
+//            String instruction = null;
+//            try {
+//                instruction = in.readLine();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            switch (instruction) {
+//                case Constants.krigingCalculateX:
+//                    String attribute = null;
+//                    try {
+//                        attribute
+//                                = in.readLine();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    String[] calculateX = this.calculateX(attribute);
+//                    table.put(protectedAttributeNames[0], calculateX);
+//                    break;
+//                case Constants.krigingCalculateY:
+//                    attribute = null;
+//                    calculateX = null;
+//                    try {
+//                        attribute = in.readLine();
+//                        calculateX = in.readLine().split(":");
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                    String[] calculateY
+//                            = this.calculateY(attribute, calculateX);
+//                    table.put(protectedAttributeNames[0], calculateY);
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+        LOG.info("Protected attribute names:");
+        for (String s : protectedAttributeNames) {
+            LOG.info(s);
+        }
+
+        LOG.info("Values in original table:");
+        for (String s : table.keySet()) {
+            LOG.info(s);
+        }
 
         Map<String, String[]> lTable = new HashMap<>();
         for (String attr : protectedAttributeNames) {
-            lTable.put(attr, table.get(attr));
+
+            attr = Demo.removeMeusePrefix(attr);
+
+            if (!table.containsKey(attr)) {
+                throw new RuntimeException("Table has no attribute named " + attr);
+            }
+            String[] value = table.get(attr);
+            if (value == null) {
+                throw new RuntimeException("Trying to insert null value into map");
+            }
+            lTable.put(attr, value);
         }
         return datasetByRows(protectedAttributeNames, lTable);
     }
@@ -130,94 +185,94 @@ public class Cloud {
 
     private Predicate<String[]> getPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-        case "=":
-            return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
-        case ">":
-            return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
-        case ">=":
-            return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
-        case "<":
-            return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
-        case "<=":
-            return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
-        case Constants.area:
-            return p -> {
-                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
-                return inArea(p[pos], boundaries);
-            };
-        case Constants.in:
-            return p -> {
-                String[] listOfValues = c.getValue().split(",");
-                List<String> listOfStrings = Arrays.asList(listOfValues);
-                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
-                        .collect(Collectors.toList());
-                return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
-            };
-        default:
-            return p -> true;
+            case "=":
+                return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
+            case ">":
+                return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
+            case ">=":
+                return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
+            case "<":
+                return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
+            case "<=":
+                return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
+            case Constants.area:
+                return p -> {
+                    double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                    return inArea(p[pos], boundaries);
+                };
+            case Constants.in:
+                return p -> {
+                    String[] listOfValues = c.getValue().split(",");
+                    List<String> listOfStrings = Arrays.asList(listOfValues);
+                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                            .collect(Collectors.toList());
+                    return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
+                };
+            default:
+                return p -> true;
         }
     }
 
     private IntPredicate getPredicateByInt(Criteria c, final int pos) {
         switch (c.getOperator()) {
-        case "=":
-            return p -> data[p][pos].equals(c.getValue())
-                    || Double.parseDouble(data[p][pos]) == Double.parseDouble(c.getValue());
-        case ">":
-            return p -> Double.parseDouble(data[p][pos]) > Double.parseDouble(c.getValue());
-        case ">=":
-            return p -> Double.parseDouble(data[p][pos]) >= Double.parseDouble(c.getValue());
-        case "<":
-            return p -> Double.parseDouble(data[p][pos]) < Double.parseDouble(c.getValue());
-        case "<=":
-            return p -> Double.parseDouble(data[p][pos]) <= Double.parseDouble(c.getValue());
-        case Constants.area:
-            return p -> {
-                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
-                return inArea(data[p][pos], boundaries);
-            };
-        case Constants.in:
-            return p -> {
-                String[] listOfValues = c.getValue().split(",");
-                List<String> listOfStrings = Arrays.asList(listOfValues);
-                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
-                        .collect(Collectors.toList());
-                return listOfStrings.contains(data[p][pos]) || listOfDoubles.contains(Double.parseDouble(data[p][pos]));
-            };
-        default:
-            return p -> true;
+            case "=":
+                return p -> data[p][pos].equals(c.getValue())
+                        || Double.parseDouble(data[p][pos]) == Double.parseDouble(c.getValue());
+            case ">":
+                return p -> Double.parseDouble(data[p][pos]) > Double.parseDouble(c.getValue());
+            case ">=":
+                return p -> Double.parseDouble(data[p][pos]) >= Double.parseDouble(c.getValue());
+            case "<":
+                return p -> Double.parseDouble(data[p][pos]) < Double.parseDouble(c.getValue());
+            case "<=":
+                return p -> Double.parseDouble(data[p][pos]) <= Double.parseDouble(c.getValue());
+            case Constants.area:
+                return p -> {
+                    double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                    return inArea(data[p][pos], boundaries);
+                };
+            case Constants.in:
+                return p -> {
+                    String[] listOfValues = c.getValue().split(",");
+                    List<String> listOfStrings = Arrays.asList(listOfValues);
+                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                            .collect(Collectors.toList());
+                    return listOfStrings.contains(data[p][pos]) || listOfDoubles.contains(Double.parseDouble(data[p][pos]));
+                };
+            default:
+                return p -> true;
         }
 
     }
 
     private Predicate<String[]> getNegatedPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-        case "=":
-            return p -> !(p[pos].equals(c.getValue())
-                    || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue()));
-        case ">":
-            return p -> !(Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue()));
-        case ">=":
-            return p -> !(Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue()));
-        case "<":
-            return p -> !(Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue()));
-        case "<=":
-            return p -> !(Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue()));
-        case Constants.area:
-            return p -> {
-                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
-                return !inArea(p[pos], boundaries);
-            };
-        case Constants.in:
-            return p -> {
-                String[] listOfValues = c.getValue().split(",");
-                List<String> listOfStrings = Arrays.asList(listOfValues);
-                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
-                        .collect(Collectors.toList());
-                return !(listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos])));
-            };
-        default:
-            return p -> false;
+            case "=":
+                return p -> !(p[pos].equals(c.getValue())
+                        || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue()));
+            case ">":
+                return p -> !(Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue()));
+            case ">=":
+                return p -> !(Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue()));
+            case "<":
+                return p -> !(Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue()));
+            case "<=":
+                return p -> !(Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue()));
+            case Constants.area:
+                return p -> {
+                    double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                    return !inArea(p[pos], boundaries);
+                };
+            case Constants.in:
+                return p -> {
+                    String[] listOfValues = c.getValue().split(",");
+                    List<String> listOfStrings = Arrays.asList(listOfValues);
+                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                            .collect(Collectors.toList());
+                    return !(listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos])));
+                };
+            default:
+                return p -> false;
         }
     }
 
@@ -338,12 +393,20 @@ public class Cloud {
         String[][] transposedContent = transpose(content);
         Map<String, String[]> table = new HashMap<>();
         for (int i = 0; i < attributeNames.length; i++) {
-            table.put(attributeNames[i], transposedContent[i]);
+            String[] value = transposedContent[i];
+            if (value == null) {
+                throw new RuntimeException("Trying to insert null value into map");
+            }
+            table.put(attributeNames[i], value);
         }
         return table;
     }
 
     public static String[][] datasetByRows(String[] attributeNames, Map<String, String[]> dataset) {
+        attributeNames[0] = Demo.removeMeusePrefix(attributeNames[0]);
+        if (!dataset.containsKey(attributeNames[0]) || dataset.get(attributeNames[0]) == null) {
+            throw new RuntimeException("Dataset does not contain key " + attributeNames[0]);
+        }
         int rows = dataset.get(attributeNames[0]).length;
         int columns = attributeNames.length;
         String[][] table = new String[columns][rows];
@@ -356,6 +419,11 @@ public class Cloud {
     }
 
     public static String[][] transpose(String[][] content) {
+        LOG.info("Entering transpose with content " + content.length + " / " + content[0].length);
+        if (Util.isNullOrContainsNullString(content)) {
+            LOG.info(Util.stringArrayToString(content));
+            throw new RuntimeException("Contains null");
+        }
         String[][] transposedContent = new String[content[0].length][content.length];
         for (int i = 0; i < content.length; i++) {
             for (int j = 0; j < content[0].length; j++) {

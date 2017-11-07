@@ -9,50 +9,70 @@ import eu.clarussecure.dataoperations.*;
 import eu.clarussecure.dataoperations.splitting.Constants;
 import eu.clarussecure.dataoperations.splitting.Functions;
 import eu.clarussecure.dataoperations.splitting.SplittingModule;
+import eu.clarussecure.dataoperations.splitting.Util;
 import org.w3c.dom.Document;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 
 public class Demo {
 
+    private final static Logger LOG = Logger.getLogger(Demo.class);
+
     public static void main(String[] args) throws IOException {
-        List<Cloud> clouds = new ArrayList<>();
+        // Log4j configuration.
+        PropertyConfigurator.configure("log4j.properties");
 
         // Load data at client application
         File file = new File("./datasets/meuse2.txt");
         DatasetParser datasetParser = new DatasetParser(file, ",");
         String[] attributes = datasetParser.parseHeaders();
         String[][] dataOri = datasetParser.parseDataset();
+        if (Util.isNullOrContainsNullString(attributes)) {
+            throw new RuntimeException("'Attributes' contains null values");
+        }
+        if (Util.isNullOrContainsNullString(dataOri)) {
+            throw new RuntimeException("'Data origin' contains null values");
+        }
+
+        LOG.debug("Attributes: " + Util.stringArrayToString(attributes));
 
         // Instantiate Splitting Module
         byte[] xmlProperties = loadXmlFile("./datasets/properties3.xml");
         Document document = Functions.readDocument(xmlProperties);
-        DataOperation splittingModule = new SplittingModule(document);
+        SplittingModule splittingModule = new SplittingModule(document);
 
         // Post new dataset operation
         List<DataOperationCommand> commands = splittingModule.post(attributes, dataOri);
+        for (DataOperationCommand c : commands) {
+            if (c == null) {
+                throw new RuntimeException("Command is null");
+            }
+            LOG.info(c);
+        }
 
         // Create db in cloud
+        List<Cloud> clouds = new ArrayList<>();
         for (DataOperationCommand c : commands) {
             clouds.add(new Cloud(c.getProtectedAttributeNames(), c.getProtectedContents()));
         }
 
         // Show what it is in the cloud
-        System.out.println("Contents in the cloud after first post.");
+        LOG.info("Contents in the cloud after first post.");
         for (Cloud c : clouds) {
-            c.printContents();
+            LOG.info(c);
         }
-        System.out.println("---------------------------------------");
+        LOG.info("---------------------------------------");
 
         // Post new record operation
-        String[][] append = { { "500", "1.800000000000000", "25.000000000000000", "97.000000000000000",
-                "251.000000000000000", "9.073000000000000", "0.228123000000000", "9.000000000000000", "1", "1", "0",
-                "Ag", "300.000000000000000", "0101000020E61000000000000040190641000000009C531441" } };
+        String[][] append = {{"500", "1.800000000000000", "25.000000000000000", "97.000000000000000",
+            "251.000000000000000", "9.073000000000000", "0.228123000000000", "9.000000000000000", "1", "1", "0",
+            "Ag", "300.000000000000000", "0101000020E61000000000000040190641000000009C531441"}};
         commands = splittingModule.post(attributes, append);
-
 
         // Update database
         for (int i = 0; i < commands.size(); i++) {
@@ -60,11 +80,11 @@ public class Demo {
         }
 
         // Show what it is in the cloud
-        System.out.println("Contents in the cloud after second post.");
+        LOG.debug("Contents in the cloud after second post.");
         for (Cloud c : clouds) {
-            c.printContents();
+            LOG.debug(c);
         }
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // GET without criteria
         commands = splittingModule.get(attributes, null);
@@ -76,12 +96,11 @@ public class Demo {
         List<DataOperationResult> results = splittingModule.get(commands, contents);
 
         // Client application
-        System.out.println("Response from get with no criteria.");
+        LOG.debug("Response from get with no criteria.");
         printResponse(results);
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // Retrieve an area from splitting example
-
         Criteria criteria = new Criteria("meuseDB/meuse/geom", eu.clarussecure.dataoperations.splitting.Constants.area,
                 "180199,331700,180700,332570,3857");
         Criteria[] criterias = new Criteria[1];
@@ -91,12 +110,11 @@ public class Demo {
         contents = queryClouds(clouds, commands);
         results = splittingModule.get(commands, contents);
 
-        System.out.println("Response from get with area criteria. -> geom in area(180199,331700,180700,332570)");
+        LOG.debug("Response from get with area criteria. -> geom in area(180199,331700,180700,332570)");
         printResponse(results);
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // Retrieve record by GID
-
         criteria = new Criteria("meuseDB/meuse/gid", "=", "37");
         criterias = new Criteria[1];
         criterias[0] = criteria;
@@ -105,12 +123,11 @@ public class Demo {
         contents = queryClouds(clouds, commands);
         results = splittingModule.get(commands, contents);
 
-        System.out.println("Response from get by id. -> gid == 37");
+        LOG.debug("Response from get by id. -> gid == 37");
         printResponse(results);
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // Retrieve record by COPPER >= 100 AND LEAD == 405.0
-
         criteria = new Criteria("meuseDB/meuse/copper", ">=", "100.0");
         Criteria criteria2 = new Criteria("meuseDB/meuse/lead", ">", "405");
         criterias = new Criteria[2];
@@ -121,12 +138,11 @@ public class Demo {
         contents = queryClouds(clouds, commands);
         results = splittingModule.get(commands, contents);
 
-        System.out.println("Response from get by criteria. -> copper >= 100.0 AND lead == 405.0");
+        LOG.debug("Response from get by criteria. -> copper >= 100.0 AND lead == 405.0");
         printResponse(results);
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // Retrieve record by list of ids
-
         criteria = new Criteria("meuseDB/meuse/gid", Constants.in, "1,3,4,8");
         criterias = new Criteria[1];
         criterias[0] = criteria;
@@ -135,12 +151,11 @@ public class Demo {
         contents = queryClouds(clouds, commands);
         results = splittingModule.get(commands, contents);
 
-        System.out.println("Response from get by list criteria. -> gid in 1,3,4,8");
+        LOG.debug("Response from get by list criteria. -> gid in 1,3,4,8");
         printResponse(results);
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // Delete records
-
         criteria = new Criteria("meuseDB/meuse/gid", Constants.in, "1,2,3,4,5");
         criterias = new Criteria[1];
         criterias[0] = criteria;
@@ -148,17 +163,16 @@ public class Demo {
         commands = splittingModule.delete(attributes, criterias);
         deleteInClouds(clouds, commands);
 
-        System.out.println("State of clouds after delete. -> gid in 1,2,3,4,5");
+        LOG.debug("State of clouds after delete. -> gid in 1,2,3,4,5");
         for (Cloud c : clouds) {
-            c.printContents();
+            LOG.debug(c);
         }
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // Update a record
-
-        String[][] update = { { "500", "2.800000000000000", "24.000000000000000", "100.000000000000000",
-                "250.000000000000000", "10.073000000000000", "1.228123000000000", "8.000000000000000", "2", "2", "2",
-                "Ag", "300.000000000000000", "0101000020E610000000000000F8DD054100000000004054C0" } };
+        String[][] update = {{"500", "2.800000000000000", "24.000000000000000", "100.000000000000000",
+            "250.000000000000000", "10.073000000000000", "1.228123000000000", "8.000000000000000", "2", "2", "2",
+            "Ag", "300.000000000000000", "0101000020E610000000000000F8DD054100000000004054C0"}};
         criteria = new Criteria("meuseDB/meuse/gid", "=", "500");
         criterias = new Criteria[1];
         criterias[0] = criteria;
@@ -175,12 +189,12 @@ public class Demo {
         contents = queryClouds(clouds, commands);
         results = splittingModule.get(commands, contents);
 
-        System.out.println("Response from get by id after update. -> gid == 500");
+        LOG.debug("Response from get by id after update. -> gid == 500");
         printResponse(results);
-        System.out.println("---------------------------------------");
+        LOG.debug("---------------------------------------");
 
         // KRIGING TEST
-        System.out.println("KRIGING TEST");
+        LOG.debug("KRIGING TEST");
 
         // cleanup clouds
         clouds = new ArrayList<>();
@@ -205,11 +219,11 @@ public class Demo {
         }
 
         // Show contents in cloud
-        System.out.println("Kriging dataset in clouds.");
+        LOG.debug("Kriging dataset in clouds.");
         for (Cloud c : clouds) {
-            c.printContents();
+            LOG.debug(c);
         }
-        System.out.println("--------------------------");
+        LOG.debug("--------------------------");
 
         // testing of zinc at point (1,0)
         criteria = new Criteria("meuseDB/meuse/zinc", eu.clarussecure.dataoperations.splitting.Constants.kriging,
@@ -219,7 +233,13 @@ public class Demo {
 
         // Orchestrated Kriging
         commands = splittingModule.get(attributes, criterias);
+
+        LOG.debug("Querying clouds");
         contents = queryClouds(clouds, commands);
+        LOG.debug("done");
+
+        System.exit(0);
+
         results = splittingModule.get(commands, contents);
         while (true) {
             if (results.stream().anyMatch(p -> p instanceof DataOperationCommand)) {
@@ -255,16 +275,17 @@ public class Demo {
 
     private static void updateInClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
         for (int i = 0; i < commands.size(); i++) {
-            clouds.get(i).update(commands.get(i).getCriteria(), commands.get(i).getProtectedAttributeNames(), commands.get(i).getProtectedContents());
+            clouds.get(i).update(commands.get(i).getCriteria(), commands.get(i).getProtectedAttributeNames(),
+                    commands.get(i).getProtectedContents());
         }
     }
 
     private static void printResponse(List<DataOperationResult> results) {
         for (DataOperationResult r : results) {
             DataOperationResponse re = (DataOperationResponse) r;
-            System.out.println(String.join(", ", re.getAttributeNames()));
+            LOG.debug(String.join(", ", re.getAttributeNames()));
             for (String[] row : re.getContents()) {
-                System.out.println(String.join(", ", row));
+                LOG.debug(String.join(", ", row));
             }
         }
     }
@@ -294,7 +315,7 @@ public class Demo {
         String xml = sb.toString();
         file.closeFile();
         Functions.readProperties(xml);
-        System.out.println("Xml loaded");
+        LOG.debug("Xml loaded");
         return xml.getBytes();
     }
 
@@ -324,5 +345,12 @@ public class Demo {
         data[2][2] = WKBWriter.toHex(writer.write(geom)); // geom
 
         return data;
+    }
+
+    public final static String removeMeusePrefix(String s) {
+        if (s.startsWith("meuseDB/")) {
+            s = s.substring(8);
+        }
+        return s;
     }
 }
