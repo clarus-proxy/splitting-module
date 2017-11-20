@@ -238,8 +238,6 @@ public class Demo {
         contents = queryClouds(clouds, commands);
         LOG.debug("done");
 
-        System.exit(0);
-
         results = splittingModule.get(commands, contents);
         while (true) {
             if (results.stream().anyMatch(p -> p instanceof DataOperationCommand)) {

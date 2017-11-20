@@ -412,7 +412,15 @@ public class Cloud {
         String[][] table = new String[columns][rows];
 
         for (int i = 0; i < attributeNames.length; i++) {
-            table[i] = dataset.get(attributeNames[i]);
+            String name = Demo.removeMeusePrefix(attributeNames[i]);
+            if (name == null) {
+                throw new RuntimeException("String is null");
+            }
+            String[] a = dataset.get(name);
+            if (Util.isNullOrContainsNullString(a)) {
+                throw new RuntimeException("String array is null");
+            }
+            table[i] = a;
         }
 
         return transpose(table);
