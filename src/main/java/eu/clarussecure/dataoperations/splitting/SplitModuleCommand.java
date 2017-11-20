@@ -21,7 +21,8 @@ public class SplitModuleCommand extends DataOperationCommand {
             throw new RuntimeException("Trying to create split module command with null value: attributeNames");
         }
         if (Util.isNullOrContainsNullString(protectedAttributeNames)) {
-            throw new RuntimeException("Trying to create split module command with null value: protectedAttributeNames");
+            throw new RuntimeException(
+                    "Trying to create split module command with null value: protectedAttributeNames");
         }
         if (Util.isNullOrContainsNullString(mapping)) {
             throw new RuntimeException("Trying to create split module command with null value: mapping");

@@ -14,6 +14,7 @@ import org.w3c.dom.Document;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.log4j.Logger;
@@ -23,7 +24,7 @@ public class Demo {
 
     private final static Logger LOG = Logger.getLogger(Demo.class);
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ParseException {
         // Log4j configuration.
         PropertyConfigurator.configure("log4j.properties");
 
@@ -69,9 +70,9 @@ public class Demo {
         LOG.info("---------------------------------------");
 
         // Post new record operation
-        String[][] append = {{"500", "1.800000000000000", "25.000000000000000", "97.000000000000000",
-            "251.000000000000000", "9.073000000000000", "0.228123000000000", "9.000000000000000", "1", "1", "0",
-            "Ag", "300.000000000000000", "0101000020E61000000000000040190641000000009C531441"}};
+        String[][] append = { { "500", "1.800000000000000", "25.000000000000000", "97.000000000000000",
+                "251.000000000000000", "9.073000000000000", "0.228123000000000", "9.000000000000000", "1", "1", "0",
+                "Ag", "300.000000000000000", "0101000020E61000000000000040190641000000009C531441" } };
         commands = splittingModule.post(attributes, append);
 
         // Update database
@@ -170,9 +171,9 @@ public class Demo {
         LOG.debug("---------------------------------------");
 
         // Update a record
-        String[][] update = {{"500", "2.800000000000000", "24.000000000000000", "100.000000000000000",
-            "250.000000000000000", "10.073000000000000", "1.228123000000000", "8.000000000000000", "2", "2", "2",
-            "Ag", "300.000000000000000", "0101000020E610000000000000F8DD054100000000004054C0"}};
+        String[][] update = { { "500", "2.800000000000000", "24.000000000000000", "100.000000000000000",
+                "250.000000000000000", "10.073000000000000", "1.228123000000000", "8.000000000000000", "2", "2", "2",
+                "Ag", "300.000000000000000", "0101000020E610000000000000F8DD054100000000004054C0" } };
         criteria = new Criteria("meuseDB/meuse/gid", "=", "500");
         criterias = new Criteria[1];
         criterias[0] = criteria;
@@ -251,7 +252,8 @@ public class Demo {
         }
     }
 
-    private static List<String[][]> queryClouds(List<Cloud> clouds, List<DataOperationCommand> commands) {
+    private static List<String[][]> queryClouds(List<Cloud> clouds, List<DataOperationCommand> commands)
+            throws ParseException {
         List<String[][]> contents = new ArrayList<>();
         for (int i = 0; i < commands.size(); i++) {
             if (commands.get(i) == null) {

@@ -37,7 +37,7 @@ public class Cloud {
         return result;
     }
 
-    public String[][] get(String[] protectedAttributeNames, Criteria[] criteria) {
+    public String[][] get(String[] protectedAttributeNames, Criteria[] criteria) throws ParseException {
         LOG.info(Arrays.toString(attributes));
         LOG.info(Arrays.toString(protectedAttributeNames));
         String[][] loadedData = data.clone();
@@ -60,61 +60,61 @@ public class Cloud {
             if (a.contains(Constants.krigingCalculateX)) {
                 String geomAttr = a.split("(\\(|\\))")[1];
                 String[] calculateX = calculateX(geomAttr);
-                if (calculateX == null) {
+                if (Util.isNullOrContainsNullString(calculateX)) {
                     throw new RuntimeException("Calculate X is null");
                 }
-                LOG.info("Inserting into table: " + a + " -> " + calculateX);
+                LOG.info("Inserting into table: " + a + " -> " + Util.stringArrayToString(calculateX));
                 table.put(a, calculateX);
             } else if (a.contains(Constants.krigingCalculateY)) {
                 String[] parameters = a.split("(\\(|\\))")[1].split(",\\s*\\{");
                 String geomAttr = parameters[0];
                 String[] calculateX = parameters[1].substring(0, parameters[1].length() - 1).split(",");
                 String[] calculateY = calculateY(geomAttr, calculateX);
-                if (calculateY == null) {
+                if (Util.isNullOrContainsNullString(calculateY)) {
                     throw new RuntimeException("Calculate X is null");
                 }
-                LOG.info("Inserting into table: " + a + " -> " + calculateY);
+                LOG.info("Inserting into table: " + a + " -> " + Util.stringArrayToString(calculateY));
                 table.put(a, calculateY);
             }
         }
 
-//        if (extraContent != null && extraContent.length > 0) {
-//            BufferedReader in = new BufferedReader(new InputStreamReader(extraContent[0]));
-//            String instruction = null;
-//            try {
-//                instruction = in.readLine();
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//            switch (instruction) {
-//                case Constants.krigingCalculateX:
-//                    String attribute = null;
-//                    try {
-//                        attribute
-//                                = in.readLine();
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                    String[] calculateX = this.calculateX(attribute);
-//                    table.put(protectedAttributeNames[0], calculateX);
-//                    break;
-//                case Constants.krigingCalculateY:
-//                    attribute = null;
-//                    calculateX = null;
-//                    try {
-//                        attribute = in.readLine();
-//                        calculateX = in.readLine().split(":");
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                    String[] calculateY
-//                            = this.calculateY(attribute, calculateX);
-//                    table.put(protectedAttributeNames[0], calculateY);
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
+        //        if (extraContent != null && extraContent.length > 0) {
+        //            BufferedReader in = new BufferedReader(new InputStreamReader(extraContent[0]));
+        //            String instruction = null;
+        //            try {
+        //                instruction = in.readLine();
+        //            } catch (IOException e) {
+        //                e.printStackTrace();
+        //            }
+        //            switch (instruction) {
+        //                case Constants.krigingCalculateX:
+        //                    String attribute = null;
+        //                    try {
+        //                        attribute
+        //                                = in.readLine();
+        //                    } catch (IOException e) {
+        //                        e.printStackTrace();
+        //                    }
+        //                    String[] calculateX = this.calculateX(attribute);
+        //                    table.put(protectedAttributeNames[0], calculateX);
+        //                    break;
+        //                case Constants.krigingCalculateY:
+        //                    attribute = null;
+        //                    calculateX = null;
+        //                    try {
+        //                        attribute = in.readLine();
+        //                        calculateX = in.readLine().split(":");
+        //                    } catch (IOException e) {
+        //                        e.printStackTrace();
+        //                    }
+        //                    String[] calculateY
+        //                            = this.calculateY(attribute, calculateX);
+        //                    table.put(protectedAttributeNames[0], calculateY);
+        //                    break;
+        //                default:
+        //                    break;
+        //            }
+        //        }
         LOG.info("Protected attribute names:");
         for (String s : protectedAttributeNames) {
             LOG.info(s);
@@ -185,132 +185,125 @@ public class Cloud {
 
     private Predicate<String[]> getPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-            case "=":
-                return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
-            case ">":
-                return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
-            case ">=":
-                return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
-            case "<":
-                return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
-            case "<=":
-                return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
-            case Constants.area:
-                return p -> {
-                    double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
-                    return inArea(p[pos], boundaries);
-                };
-            case Constants.in:
-                return p -> {
-                    String[] listOfValues = c.getValue().split(",");
-                    List<String> listOfStrings = Arrays.asList(listOfValues);
-                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
-                            .collect(Collectors.toList());
-                    return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
-                };
-            default:
-                return p -> true;
+        case "=":
+            return p -> p[pos].equals(c.getValue()) || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue());
+        case ">":
+            return p -> Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue());
+        case ">=":
+            return p -> Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue());
+        case "<":
+            return p -> Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue());
+        case "<=":
+            return p -> Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue());
+        case Constants.area:
+            return p -> {
+                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                return inArea(p[pos], boundaries);
+            };
+        case Constants.in:
+            return p -> {
+                String[] listOfValues = c.getValue().split(",");
+                List<String> listOfStrings = Arrays.asList(listOfValues);
+                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                        .collect(Collectors.toList());
+                return listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos]));
+            };
+        default:
+            return p -> true;
         }
     }
 
     private IntPredicate getPredicateByInt(Criteria c, final int pos) {
         switch (c.getOperator()) {
-            case "=":
-                return p -> data[p][pos].equals(c.getValue())
-                        || Double.parseDouble(data[p][pos]) == Double.parseDouble(c.getValue());
-            case ">":
-                return p -> Double.parseDouble(data[p][pos]) > Double.parseDouble(c.getValue());
-            case ">=":
-                return p -> Double.parseDouble(data[p][pos]) >= Double.parseDouble(c.getValue());
-            case "<":
-                return p -> Double.parseDouble(data[p][pos]) < Double.parseDouble(c.getValue());
-            case "<=":
-                return p -> Double.parseDouble(data[p][pos]) <= Double.parseDouble(c.getValue());
-            case Constants.area:
-                return p -> {
-                    double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
-                    return inArea(data[p][pos], boundaries);
-                };
-            case Constants.in:
-                return p -> {
-                    String[] listOfValues = c.getValue().split(",");
-                    List<String> listOfStrings = Arrays.asList(listOfValues);
-                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
-                            .collect(Collectors.toList());
-                    return listOfStrings.contains(data[p][pos]) || listOfDoubles.contains(Double.parseDouble(data[p][pos]));
-                };
-            default:
-                return p -> true;
+        case "=":
+            return p -> data[p][pos].equals(c.getValue())
+                    || Double.parseDouble(data[p][pos]) == Double.parseDouble(c.getValue());
+        case ">":
+            return p -> Double.parseDouble(data[p][pos]) > Double.parseDouble(c.getValue());
+        case ">=":
+            return p -> Double.parseDouble(data[p][pos]) >= Double.parseDouble(c.getValue());
+        case "<":
+            return p -> Double.parseDouble(data[p][pos]) < Double.parseDouble(c.getValue());
+        case "<=":
+            return p -> Double.parseDouble(data[p][pos]) <= Double.parseDouble(c.getValue());
+        case Constants.area:
+            return p -> {
+                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                return inArea(data[p][pos], boundaries);
+            };
+        case Constants.in:
+            return p -> {
+                String[] listOfValues = c.getValue().split(",");
+                List<String> listOfStrings = Arrays.asList(listOfValues);
+                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                        .collect(Collectors.toList());
+                return listOfStrings.contains(data[p][pos]) || listOfDoubles.contains(Double.parseDouble(data[p][pos]));
+            };
+        default:
+            return p -> true;
         }
 
     }
 
     private Predicate<String[]> getNegatedPredicate(Criteria c, final int pos) {
         switch (c.getOperator()) {
-            case "=":
-                return p -> !(p[pos].equals(c.getValue())
-                        || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue()));
-            case ">":
-                return p -> !(Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue()));
-            case ">=":
-                return p -> !(Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue()));
-            case "<":
-                return p -> !(Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue()));
-            case "<=":
-                return p -> !(Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue()));
-            case Constants.area:
-                return p -> {
-                    double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
-                    return !inArea(p[pos], boundaries);
-                };
-            case Constants.in:
-                return p -> {
-                    String[] listOfValues = c.getValue().split(",");
-                    List<String> listOfStrings = Arrays.asList(listOfValues);
-                    List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
-                            .collect(Collectors.toList());
-                    return !(listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos])));
-                };
-            default:
-                return p -> false;
+        case "=":
+            return p -> !(p[pos].equals(c.getValue())
+                    || Double.parseDouble(p[pos]) == Double.parseDouble(c.getValue()));
+        case ">":
+            return p -> !(Double.parseDouble(p[pos]) > Double.parseDouble(c.getValue()));
+        case ">=":
+            return p -> !(Double.parseDouble(p[pos]) >= Double.parseDouble(c.getValue()));
+        case "<":
+            return p -> !(Double.parseDouble(p[pos]) < Double.parseDouble(c.getValue()));
+        case "<=":
+            return p -> !(Double.parseDouble(p[pos]) <= Double.parseDouble(c.getValue()));
+        case Constants.area:
+            return p -> {
+                double[] boundaries = Arrays.stream(c.getValue().split(",")).mapToDouble(Double::parseDouble).toArray();
+                return !inArea(p[pos], boundaries);
+            };
+        case Constants.in:
+            return p -> {
+                String[] listOfValues = c.getValue().split(",");
+                List<String> listOfStrings = Arrays.asList(listOfValues);
+                List<Double> listOfDoubles = Arrays.stream(listOfValues).map(Double::parseDouble)
+                        .collect(Collectors.toList());
+                return !(listOfStrings.contains(p[pos]) || listOfDoubles.contains(Double.parseDouble(p[pos])));
+            };
+        default:
+            return p -> false;
         }
     }
 
-    public String[] calculateX(String geoAttributeName) {
-        List<BigDecimal> resultList = new ArrayList<BigDecimal>();
-        int gpos = Arrays.asList(attributes).indexOf(geoAttributeName);
-        String[] result;
+    public String[] calculateX(String geoAttributeName) throws ParseException {
+        geoAttributeName = Demo.removeMeusePrefix(geoAttributeName);
+        List<BigDecimal> resultList = new ArrayList<>();
+        int gpos = Arrays.asList(this.attributes).indexOf(geoAttributeName);
 
-        for (int i = 0; i < data.length; i++) {
-            for (int j = i; j < data.length; j++) {
+        for (int i = 0; i < this.data.length; i++) {
+            for (int j = i; j < this.data.length; j++) {
+                BigDecimal xi = extractX(data[i][gpos]);
+                BigDecimal xj = extractX(data[j][gpos]);
 
-                BigDecimal dist = null, xi = null, xj = null;
-
-                try {
-                    xi = extractX(data[i][gpos]);
-                    xj = extractX(data[j][gpos]);
-                } catch (ParseException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-
-                dist = (xj.subtract(xi)).pow(2);
+                BigDecimal dist = (xj.subtract(xi)).pow(2);
                 resultList.add(dist);
             }
         }
 
-        result = new String[resultList.size()];
+        String[] result = new String[resultList.size()];
         for (int i = 0; i < resultList.size(); i++) {
             result[i] = resultList.get(i).toString();
         }
         return result;
     }
 
-    public String[] calculateY(String geoAttributeName, String[] xPoints) {
-        List<BigDecimal> xList = new ArrayList<BigDecimal>();
-        List<BigDecimal> yList = new ArrayList<BigDecimal>();
-        List<BigDecimal> resultList;
-        String[] result;
+    public String[] calculateY(String geoAttributeName, String[] xPoints) throws ParseException {
+        geoAttributeName = Demo.removeMeusePrefix(geoAttributeName);
+
+        List<BigDecimal> xList = new ArrayList<>();
+        List<BigDecimal> yList = new ArrayList<>();
+
         int gpos = Arrays.asList(attributes).indexOf(geoAttributeName);
 
         for (int i = 0; i < xPoints.length; i++) {
@@ -319,25 +312,16 @@ public class Cloud {
 
         for (int i = 0; i < data.length; i++) {
             for (int j = i; j < data.length; j++) {
+                BigDecimal yi = extractY(data[i][gpos]);
+                BigDecimal yj = extractY(data[j][gpos]);
 
-                BigDecimal dist = null, yi = null, yj = null;
-
-                try {
-                    yi = extractY(data[i][gpos]);
-                    yj = extractY(data[j][gpos]);
-                } catch (ParseException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-
-                dist = (yj.subtract(yi)).pow(2);
+                BigDecimal dist = (yj.subtract(yi)).pow(2);
                 yList.add(dist);
             }
         }
 
-        resultList = calculateDistance(xList, yList);
-
-        result = new String[resultList.size()];
+        List<BigDecimal> resultList = calculateDistance(xList, yList);
+        String[] result = new String[resultList.size()];
         for (int i = 0; i < resultList.size(); i++) {
             result[i] = resultList.get(i).toString();
         }
