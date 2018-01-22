@@ -1202,6 +1202,7 @@ public class SplittingModule implements DataOperation {
 
     private String buildProtectedAttributeName(String attributeName, int cloud) {
         // AKKA fix: preserve first part
-        return /*"csp" + (cloud + 1) + "/" +*/ attributeName;
+        //return /*"csp" + (cloud + 1) + "/" +*/ attributeName;
+        return "csp" + (cloud + 1) + "/" + attributeName;
     }
 }
